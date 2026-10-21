@@ -8,6 +8,10 @@
 
 Dark oak, hammered bronze bands and a carved boar head on each end.
 
+![Tamed boars eating carrots from Gullinbursti's Trough](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/trough-boars.jpg)
+
+![Gullinbursti's Trough filled with carrots](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/trough.jpg)
+
 - **Build it** with the hammer under **Furniture**: 10 Wood and 2 Bronze, near a workbench.
 - **Fill it** from your hotbar: look at it and press the food's **hotbar key (1-8)** to add that stack. It holds 40 pieces of food (the server can change this).
 - **Take it back** with **Shift + E** (the alternate place key + Use). Whatever doesn't fit in your inventory lands at your feet.
