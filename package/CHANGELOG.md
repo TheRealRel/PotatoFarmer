@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+- The models, textures, icon and screenshots are now under CC BY-NC 4.0; the code stays MIT.
+
 ## 1.1.0
 - New: **Gullinkambi's Roost**, a fine wood and black metal nesting box with rooster-head ends (hammer, Furniture, 10 Fine Wood and 2 Black Metal at a workbench). It gathers the eggs your hens lay nearby, so the flock keeps laying, and keeps each egg's star level. With a fire nearby it hatches its eggs, a chick every 5 minutes after the first, to keep the flock at 6 hens and chicks (Flock size setting); eggs already warming by a fire are left to hatch, E switches gathering off, and Shift + E takes the eggs. The eggs show in its three cubbies.
 - Screenshots on the mod page, and a clearer introduction.

@@ -1,3 +1,18 @@
+PotatoFarmer is under two licenses.
+
+1. Code: MIT License
+   Everything except the art listed in part 2 (the plugin's source code, build scripts and tools).
+
+2. Art: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+   https://creativecommons.org/licenses/by-nc/4.0/
+   The piece models and textures (the assets folder: *.mesh and *.png), the mod icon (icon.png) and the screenshots
+   (docs/images). Copyright (c) 2026 TheRealRel. You may share and adapt them for non-commercial use if you credit
+   "TheRealRel (PotatoFarmer)" and link https://github.com/TheRealRel/PotatoFarmer. Commercial use (including selling
+   them or putting them in a paid or paywalled mod) needs written permission.
+   This covers PotatoFarmer 1.1.1 and later; earlier versions were released under the MIT License.
+
+----------------------------------------------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2026 TheRealRel
