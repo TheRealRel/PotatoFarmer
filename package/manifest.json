@@ -1,0 +1,10 @@
+{
+  "name": "PotatoFarmer",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/TheRealRel/PotatoFarmer",
+  "description": "Farming and animal pieces for Valheim. First up: Gullinbursti's Trough, a bronze and wood feeding trough with boar heads. Fill it with food and hungry animals nearby eat from it: taming, breeding and feeding all count.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2351",
+    "ValheimModding-Jotunn-2.30.2"
+  ]
+}

@@ -1,0 +1,5 @@
+out/
+release/
+package/plugins/
+test/*.exe
+tools/_*.npy
