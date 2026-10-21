@@ -1,6 +1,8 @@
 # Turns a .glb (e.g. from Meshy) into a PotatoFarmer piece's assets: <name>.mesh and three textures in the layout
 # Valheim's piece shader (Custom/Piece) expects.
-#   python3 -I convert.py model.glb assets_dir name [length_m] [pixels_per_m]
+#   python3 -I convert.py model.glb assets_dir name [length_m] [pixels_per_m] [metal=H,S,V] [wood=H,S,V]
+# metal= / wood= recolor the metal parts (from the metal map) or the wood (everything else except bright straw-yellow):
+# H = hue in degrees, S = saturation (0-1), V = brightness multiplier. Black metal: metal=0,0.03,0.55
 # The Potato look: textures sized to about 50 pixels per metre of surface (Valheim's forge is ~50, the reinforced
 # chest ~35), rounded to a power of two, and drawn in game with sharp (point) filtering like the game's own pieces.
 import io, json, struct, sys
@@ -9,8 +11,10 @@ from PIL import Image
 from scipy import ndimage
 
 src, out, name = sys.argv[1], sys.argv[2], sys.argv[3]
-length = float(sys.argv[4]) if len(sys.argv) > 4 else 2.0
-density = float(sys.argv[5]) if len(sys.argv) > 5 else 50.0
+plain = [a for a in sys.argv[4:] if "=" not in a]
+options = dict(a.split("=", 1) for a in sys.argv[4:] if "=" in a)
+length = float(plain[0]) if len(plain) > 0 else 2.0
+density = float(plain[1]) if len(plain) > 1 else 50.0
 
 data = open(src, "rb").read()
 jlen = struct.unpack("<I", data[12:16])[0]
@@ -74,6 +78,34 @@ mat = gltf["materials"][prim["material"]]
 pbr = mat["pbrMetallicRoughness"]
 color_img = image(gltf["textures"][pbr["baseColorTexture"]["index"]]["source"]).convert("RGB")
 size = color_img.size[0]
+
+def recolor(img, metal_map):
+    # Optional per-piece color matching (see the usage line at the top).
+    if "metal" not in options and "wood" not in options: return img
+    rgb = np.asarray(img).astype(np.float64) / 255
+    mx = rgb.max(2); mn = rgb.min(2); v = mx; s = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-9), 0)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    d = np.maximum(mx - mn, 1e-9)
+    h = np.select([mx == r, mx == g], [((g - b) / d) % 6, (b - r) / d + 2], (r - g) / d + 4) / 6
+    metal = np.asarray(metal_map.convert("RGB").resize(img.size)).astype(np.float64)[..., 2] / 255  # glTF: metal in blue
+    straw = (h * 360 > 30) & (h * 360 < 60) & (s > 0.45) & (v > 0.45)
+    def apply(spec, weight):
+        nonlocal h, s, v
+        th, ts, tv = (float(x) for x in spec.split(","))
+        h = np.where(weight > 0, h * (1 - weight) + (th / 360) * weight, h)
+        s = s * (1 - weight) + ts * weight
+        v = np.clip(v * (1 - weight + tv * weight), 0, 1)
+    if "metal" in options: apply(options["metal"], np.clip((metal - 0.3) / 0.4, 0, 1))
+    if "wood" in options: apply(options["wood"], np.where(straw, 0.0, 1 - np.clip((metal - 0.3) / 0.4, 0, 1)))
+    i = np.floor(h * 6) % 6; f = h * 6 - np.floor(h * 6)
+    p_, q_, t_ = v * (1 - s), v * (1 - f * s), v * (1 - (1 - f) * s)
+    rgb_out = np.zeros_like(rgb)
+    for k, (a_, b_, c_) in enumerate([(v, t_, p_), (q_, v, p_), (p_, v, t_), (p_, q_, v), (t_, p_, v), (v, p_, q_)]):
+        sel = i == k
+        rgb_out[sel] = np.stack([a_[sel], b_[sel], c_[sel]], -1)
+    return Image.fromarray((rgb_out * 255).round().clip(0, 255).astype(np.uint8), "RGB")
+
+color_img = recolor(color_img, image(gltf["textures"][pbr["metallicRoughnessTexture"]["index"]]["source"]))
 if px >= size: px = size
 
 # Which UV island each source pixel belongs to. Meshy packs many small islands tightly, so a plain shrink mixes

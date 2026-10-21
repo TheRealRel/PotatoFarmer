@@ -48,24 +48,34 @@ namespace PotatoFarmer
         }
     }
 
-    // One custom piece's material: a copy of the reinforced chest's (the game's piece shader, wood with metal) with the
-    // piece's own textures, drawn with sharp, unblended pixels like Valheim's own pieces.
+    // One custom piece's material: a copy of a vanilla piece's material (the game's piece shader, wood with metal) with
+    // the piece's own textures, drawn with sharp, unblended pixels like Valheim's own pieces. The template decides how
+    // the metal looks: "ironchest" (reinforced chest) for plain iron and bronze; "BlackMetalChest_mat" for black metal,
+    // whose material tints the metal green and lightens wood (its own wood texture is nearly black). Its value noise
+    // mottles baked textures, so pieces using it turn that off.
     internal sealed class PieceLook
     {
         internal readonly Material Material;
 
-        // Brightness tints the whole model (1 = as painted); shine is how glossy the metal parts are (0 = dull).
-        internal PieceLook(string name, float brightness, float shine)
+        // Brightness tints the whole model (1 = as painted); shine is how glossy the metal parts are (0 = dull, below 0 =
+        // keep the template's own).
+        internal PieceLook(string name, float brightness, float shine, string templateName = "ironchest", Color? metalColor = null, float valueNoise = -1f)
         {
-            var template = PrefabManager.Cache.GetPrefab<Material>("ironchest");
+            var template = PrefabManager.Cache.GetPrefab<Material>(templateName);
             Material = template ? new Material(template) : new Material(Shader.Find("Custom/Piece") ?? Shader.Find("Standard"));
-            if (!template) Plugin.Log.LogWarning("The reinforced chest's material wasn't found; using a plain one.");
+            if (!template) Plugin.Log.LogWarning($"The material {templateName} wasn't found; using a plain one.");
             Material.name = "potato_" + name;
             if (Material.HasProperty("_Metallic")) Material.SetFloat("_Metallic", 1f);
             if (Material.HasProperty("_BumpScale")) Material.SetFloat("_BumpScale", 1f);
             if (Material.HasProperty("_Color")) Material.SetColor("_Color", new Color(brightness, brightness, brightness, 1f));
-            if (Material.HasProperty("_MetallicAlphaGloss")) Material.SetFloat("_MetallicAlphaGloss", shine);
-            if (Material.HasProperty("_GlossMapScale")) Material.SetFloat("_GlossMapScale", shine);
+            if (shine >= 0f && Material.HasProperty("_MetallicAlphaGloss")) Material.SetFloat("_MetallicAlphaGloss", shine);
+            if (shine >= 0f && Material.HasProperty("_GlossMapScale")) Material.SetFloat("_GlossMapScale", shine);
+            // The shader's tint for the metal parts only (black metal pieces use a strong green).
+            if (metalColor.HasValue && Material.HasProperty("_MetalColor")) Material.SetColor("_MetalColor", metalColor.Value);
+            // The shader's light/dark blotches across the surface (0 = none). Baked AI textures already vary, so the
+            // template's noise on top makes them look mottled.
+            if (valueNoise >= 0f && Material.HasProperty("_ValueNoise")) Material.SetFloat("_ValueNoise", valueNoise);
+            if (valueNoise >= 0f && Material.HasProperty("_ValueNoiseVertex")) Material.SetFloat("_ValueNoiseVertex", 0f);
             if (GUIManager.IsHeadless()) return;
             SetTexture("_MainTex", name + "_d.png", false);
             SetTexture("_BumpMap", name + "_n.png", true);

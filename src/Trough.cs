@@ -319,7 +319,7 @@ namespace PotatoFarmer
         }
 
         // The model's visible size in its own space, from its meshes (Renderer.bounds is empty while switched off).
-        private static bool LocalBounds(GameObject copy, out Bounds bounds)
+        internal static bool LocalBounds(GameObject copy, out Bounds bounds)
         {
             bounds = default;
             bool any = false;
@@ -344,7 +344,7 @@ namespace PotatoFarmer
             return any;
         }
 
-        private static void Strip(GameObject copy)
+        internal static void Strip(GameObject copy)
         {
             foreach (var system in copy.GetComponentsInChildren<ParticleSystem>(true))
             {
