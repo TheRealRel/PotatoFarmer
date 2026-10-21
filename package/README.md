@@ -61,3 +61,9 @@ In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager.
 
 - [BepInExPack Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)
 - [Jötunn](https://thunderstore.io/c/valheim/p/ValheimModding/Jotunn/)
+
+## License
+
+The code is under the MIT License. The models, textures, icon and screenshots are © TheRealRel under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): free to share and adapt with credit, but not for
+commercial use. See LICENSE for the details.
