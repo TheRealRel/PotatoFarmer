@@ -9,7 +9,7 @@ namespace PotatoFarmer
     public class Trough : MonoBehaviour, Hoverable, Interactable
     {
         private const string FoodKey = "PotatoTrough.Food";
-        private const int MaxBaitInBowl = 4, MaxFoodModels = 12;
+        private const int MaxBaitInBowl = 4, MaxFoodModels = 20;
         private const float DispenseDelay = 3f;
         // How big the trough is built, relative to the model file (2 m long). Every measurement below is for the model
         // file and is multiplied by this, so the model, its collision and the bowl always line up.
@@ -239,9 +239,10 @@ namespace PotatoFarmer
 
         // ------------------------------------------------------------------ food in the bowl (looks only)
 
-        // The inside of the bowl, in trough space: food stays within these walls and sits on the floor (the floor's
-        // highest point, so nothing sinks in). Pieces may overlap each other, like a heap of food.
-        private const float InnerHalfLength = 0.70f * Size, InnerHalfWidth = 0.19f * Size, FloorTop = 0.222f * Size, MaxFoodHeight = 0.2f * Size;
+        // The inside of the bowl, in trough space: food stays within these walls and sits on the floor, a little sunk in
+        // (the floor's highest point, and a box around a turned model sits lower than the model, so food resting on it
+        // looked like it floated). Pieces may overlap each other, like a heap of food.
+        private const float InnerHalfLength = 0.70f * Size, InnerHalfWidth = 0.19f * Size, FloorTop = 0.222f * Size, MaxFoodHeight = 0.2f * Size, SinkIn = 0.35f;
 
         private void ShowFood(Stock stock)
         {
@@ -257,18 +258,26 @@ namespace PotatoFarmer
             // Seeded by the trough itself, so the food lies the same way every time and for every player.
             var id = view.GetZDO().m_uid;
             var random = new System.Random(unchecked((int)id.ID * 31 + id.UserID.GetHashCode()));
+            // Each food gets its share of the models, then they're shuffled: a trough of mixed food is one mash.
+            var picks = new List<GameObject>();
             foreach (var entry in stock.Entries)
             {
                 var prefab = ObjectDB.instance.GetItemPrefab(entry.Key);
                 if (!prefab) continue;
                 int count = Mathf.Max(1, Mathf.RoundToInt(models * (float)entry.Value / total));
-                for (int i = 0; i < count && placed < models; i++, placed++)
-                {
-                    var copy = Instantiate(prefab, foodModels.transform, false);
-                    Strip(copy);
-                    float along = models == 1 ? 0f : Mathf.Lerp(-0.55f * Size, 0.55f * Size, placed / (float)(models - 1));
-                    Place(copy, along + (float)(random.NextDouble() - 0.5) * 0.12f, (float)random.NextDouble(), random);
-                }
+                for (int i = 0; i < count && picks.Count < models; i++) picks.Add(prefab);
+            }
+            for (int i = picks.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                (picks[i], picks[j]) = (picks[j], picks[i]);
+            }
+            for (; placed < picks.Count; placed++)
+            {
+                var copy = Instantiate(picks[placed], foodModels.transform, false);
+                Strip(copy);
+                float along = picks.Count == 1 ? 0f : Mathf.Lerp(-0.55f * Size, 0.55f * Size, placed / (float)(picks.Count - 1));
+                Place(copy, along + (float)(random.NextDouble() - 0.5) * 0.12f, (float)random.NextDouble(), random);
             }
             foodModels.SetActive(true);
         }
@@ -308,7 +317,7 @@ namespace PotatoFarmer
             float z = minZ <= maxZ ? Mathf.Lerp(minZ, maxZ, sideways) : (minZ + maxZ) / 2f;
             copy.transform.localScale = scale * fit;
             copy.transform.localRotation = rotation;
-            copy.transform.localPosition = new Vector3(x, FloorTop - low.y, z);
+            copy.transform.localPosition = new Vector3(x, FloorTop - low.y - (high.y - low.y) * SinkIn, z);
         }
 
         private static bool Shown(Transform part, Transform root)

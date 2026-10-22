@@ -22,7 +22,7 @@ namespace PotatoFarmer
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Id = "potato.farmer", Version = "1.1.2";
+        public const string Id = "potato.farmer", Version = "1.1.3";
         // Saved in worlds: never rename.
         public const string TroughPiece = "piece_potato_trough";
         public const string TroughName = "$piece_potato_trough";
@@ -46,7 +46,7 @@ namespace PotatoFarmer
             var serverSet = new ConfigurationManagerAttributes { IsAdminOnly = true };
             TroughEnabled = Config.Bind(TroughSection, "Enabled", true,
                 new ConfigDescription("Show the feeding trough on the hammer. Troughs already built stay and keep working. Set by the server.", null, serverSet));
-            TroughCapacity = Config.Bind(TroughSection, "Capacity", 40,
+            TroughCapacity = Config.Bind(TroughSection, "Capacity", 100,
                 new ConfigDescription("How many food items one trough holds. Set by the server.", new AcceptableValueRange<int>(1, 500), serverSet));
             TroughReach = Config.Bind(TroughSection, "Reach", 25f,
                 new ConfigDescription("How far away (metres) hungry animals notice the trough and walk over to eat. 25 covers a big farm pen; animals on their own only look about 10 m for food. Set by the server.",

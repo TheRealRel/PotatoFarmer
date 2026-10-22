@@ -8,10 +8,10 @@
 
 Dark oak, hammered bronze bands and a carved boar head on each end.
 
-![Tamed boars eating carrots from Gullinbursti's Trough](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/trough-boars.jpg)
+![A boar eating from a full Gullinbursti's Trough](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/trough-boars.jpg)
 
 - **Build it** with the hammer under **Furniture**: 10 Wood and 2 Bronze, near a workbench.
-- **Fill it** from your hotbar: look at it and press the food's **hotbar key (1-8)** to add that stack. It holds 40 pieces of food (the server can change this).
+- **Fill it** from your hotbar: look at it and press the food's **hotbar key (1-8)** to add that stack. It holds 100 pieces of food (the server can change this).
 - **Take it back** with **Shift + E** (the alternate place key + Use). Whatever doesn't fit in your inventory lands at your feet.
 - **Look at it** to see what's inside. The food also shows in the bowl.
 
@@ -51,7 +51,7 @@ In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager.
 | Setting | Default | What it does |
 |---|---|---|
 | Trough: Enabled | On | Show the trough on the hammer. Troughs already built stay and keep working. Set by the server. |
-| Trough: Capacity | 40 | How much food one trough holds. Set by the server. |
+| Trough: Capacity | 100 | How much food one trough holds. Set by the server. |
 | Trough: Reach | 25 m | How far away hungry animals notice the trough and walk over (5-60 m). Set by the server. |
 | Trough: Show food in the bowl | On | Show the trough's contents as food in the bowl (only on your screen). |
 | Roost: Enabled | On | Show the roost on the hammer. Roosts already built stay and keep working. Set by the server. |

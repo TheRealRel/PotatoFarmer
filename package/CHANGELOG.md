@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+- Gullinbursti's Trough holds 100 pieces of food (was 40), and a full trough shows more food. A server that already has a config keeps its own number: set Capacity to 100 there.
+- Mixed foods are mashed together in the bowl instead of lying in groups, and the food sits down in the bowl rather than on top of it. A new trough screenshot on the mod page.
+
 ## 1.1.2
 - Gullinkambi's Roost is 1.3 times bigger (about 2.5 m long), so it stands over your hens.
 - Up to 12 eggs show in the cubbies, four to a cubby, huddled together in a clutch at a natural size.
