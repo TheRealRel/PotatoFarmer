@@ -1,6 +1,6 @@
 {
   "name": "PotatoFarmer",
-  "version_number": "1.1.2",
+  "version_number": "1.1.3",
   "website_url": "https://github.com/TheRealRel/PotatoFarmer",
   "description": "Farming and animal pieces for Valheim: Gullinbursti's Trough, a feeding trough your animals eat from, and Gullinkambi's Roost, a nesting box that gathers your hens' eggs and, by a fire, hatches chicks to keep your flock full.",
   "dependencies": [
