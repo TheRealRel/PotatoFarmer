@@ -14,11 +14,17 @@ namespace PotatoFarmer
     {
         private const string EggsKey = "PotatoRoost.Eggs", OffKey = "PotatoRoost.Off", WarmKey = "PotatoRoost.Warming";
         private const float GatherEvery = 3f;
-        // The model file's size is the roost's size; measurements below are in the model's space.
-        internal const float Size = 1f;
+        // The model file is 1.9 m long; drawn 1.3 times that (about 2.5 m long, 1.1 m tall) so it stands over a hen, which
+        // also lands its 256 px textures at the Potato look's ~50 px/m. Measurements below are in the model's space.
+        internal const float Size = 1.3f;
         // The three cubbies: centre x of each, the straw floor height and the middle of their depth.
         private static readonly float[] CubbyX = { -0.466f, -0.017f, 0.447f };
-        private const float CubbyFloor = 0.25f, CubbyZ = 0.02f, MaxShownPerCubby = 3;
+        private const float CubbyFloor = 0.25f, CubbyZ = 0.05f, MaxShownPerCubby = 4;
+        // Where each egg of a cubby's clutch sits, in egg widths: two side by side, then one in front and one behind.
+        // How long an egg looks in the cubbies (metres), and whether its model's real size was logged yet.
+        private const float EggLength = 0.12f;
+        private static bool eggSizeLogged;
+        private static readonly Vector3[] Clutch = { new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f), new Vector3(0f, 0f, 0.85f), new Vector3(0f, 0f, -0.85f) };
         private static int itemMask;
 
         private ZNetView view;
@@ -347,8 +353,9 @@ namespace PotatoFarmer
             eggModels.SetActive(false);
             eggModels.transform.SetParent(transform, false);
             var id = view.GetZDO().m_uid;
+            float clutchTurn = 0f;
             var random = new System.Random(unchecked((int)id.ID * 31 + id.UserID.GetHashCode()));
-            // One egg shown per egg stored, up to three in each cubby, filling them left to right.
+            // One egg shown per egg stored, up to four in each cubby, filling them left to right.
             var keys = stock.Entries.SelectMany(entry => Enumerable.Repeat(entry.Key, entry.Value)).Take(CubbyX.Length * (int)MaxShownPerCubby).ToList();
             for (int i = 0; i < keys.Count; i++)
             {
@@ -358,19 +365,38 @@ namespace PotatoFarmer
                 var copy = Instantiate(prefab, eggModels.transform, false);
                 Trough.Strip(copy);
                 int cubby = i / (int)MaxShownPerCubby, slot = i % (int)MaxShownPerCubby;
-                float x = CubbyX[cubby] + (slot - 1) * 0.11f + (float)(random.NextDouble() - 0.5) * 0.03f;
-                float z = CubbyZ + (float)(random.NextDouble() - 0.5) * 0.08f;
                 // Lying on its side, a little turned, resting on the straw.
                 var rotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f) * Quaternion.Euler(90f, 0f, 0f);
                 copy.transform.localRotation = rotation;
-                float bottom = 0f;
+                float bottom = 0f, across = EggLength * 0.8f;
                 if (Trough.LocalBounds(copy, out var bounds))
                 {
+                    // Shown at a set size: the egg model's own scale varies (other mods change it), and an egg the
+                    // height of the cubby looked wrong.
+                    var size = Vector3.Scale(bounds.size, copy.transform.localScale);
+                    float longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z)), shortest = Mathf.Min(size.x, Mathf.Min(size.y, size.z));
+                    if (longest > 0.001f)
+                    {
+                        float fit = EggLength / longest;
+                        copy.transform.localScale *= fit;
+                        across = (longest + shortest) / 2f * fit;
+                        if (!eggSizeLogged)
+                        {
+                            eggSizeLogged = true;
+                            Plugin.Log.LogInfo($"Roost: {name} model is {longest:0.###} m long, shown at {EggLength} m.");
+                        }
+                    }
                     var scale = copy.transform.localScale;
                     bottom = Enumerable.Range(0, 8).Select(k => (rotation * Vector3.Scale(new Vector3(
                         (k & 1) == 0 ? bounds.min.x : bounds.max.x, (k & 2) == 0 ? bounds.min.y : bounds.max.y, (k & 4) == 0 ? bounds.min.z : bounds.max.z), scale)).y).Min();
                 }
-                copy.transform.localPosition = new Vector3(x * Size, CubbyFloor * Size - bottom, z * Size);
+                // A clutch: the eggs in each cubby huddle together, touching, the cluster turned its own way.
+                if (slot == 0) clutchTurn = (float)random.NextDouble() * 360f;
+                var offset = Quaternion.Euler(0f, clutchTurn, 0f) * (Clutch[slot] * across * 0.9f);
+                float jitter = across * 0.08f;
+                float x = CubbyX[cubby] * Size + offset.x + (float)(random.NextDouble() - 0.5) * jitter;
+                float z = CubbyZ * Size + offset.z + (float)(random.NextDouble() - 0.5) * jitter;
+                copy.transform.localPosition = new Vector3(x, CubbyFloor * Size - bottom, z);
             }
             eggModels.SetActive(true);
         }
