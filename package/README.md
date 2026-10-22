@@ -42,6 +42,8 @@ Hens stop laying once there are 10 hens and eggs within 10 m, so eggs left lying
 
 Part of the **PotatoServer** pack for the Potato Server. 🛠️ Source and bug reports: [github.com/TheRealRel/PotatoFarmer](https://github.com/TheRealRel/PotatoFarmer)
 
+💬 Questions: Discord [relanebeis](https://discord.com/users/373574370267889674)
+
 ## Settings
 
 In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager.

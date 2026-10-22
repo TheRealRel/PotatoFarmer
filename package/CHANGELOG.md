@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+- Gullinkambi's Roost is 1.3 times bigger (about 2.5 m long), so it stands over your hens.
+- Up to 12 eggs show in the cubbies, four to a cubby, huddled together in a clutch at a natural size.
+- A new screenshot of the bigger roost on the mod page, and a link to the author's Discord for questions (bug reports stay on GitHub).
+
 ## 1.1.1
 - The models, textures, icon and screenshots are now under CC BY-NC 4.0; the code stays MIT.
 
