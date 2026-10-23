@@ -8,6 +8,8 @@
 //   bone      <index>  <name>  <parent index or -1>  <x y z>  <rotation quaternion x y z w>
 //   mesh      <index>  <renderer name>  enabled <bool>  readable <bool>  vertices <n>  bones <n>  rootbone <name>
 //   meshbone  <mesh index>  <mesh bone slot>  <bone index (from the bone records) or -1>
+//   bake      <mesh index>  <which way of reading the posed mesh matched the renderer's bounds>  <mismatch score>
+//   bounds    <mesh index>  <renderer world bounds centre x y z>  <size x y z>  (creature space, for checking)
 //   v         <mesh index>  <x y z>  [<bone slot> <weight> for the two strongest bones, when the mesh is readable]
 using System.Collections.Generic;
 using System.Globalization;
@@ -24,8 +26,38 @@ namespace PotatoFarmer
         internal const bool Capture = true;
         private static readonly HashSet<string> saved = new HashSet<string>();
 
-        private static string F(float v) => v.ToString("0.####", CultureInfo.InvariantCulture);
+        private static string F(float v) => v.ToString("0.#####", CultureInfo.InvariantCulture);
         private static string V(Vector3 v) => F(v.x) + " " + F(v.y) + " " + F(v.z);
+
+        // The posed mesh in world space. Creatures import with different scales on the renderer (Boar 1, others 0.01 or
+        // less), and how BakeMesh treats that scale differs, so each way is tried and the one whose box matches the
+        // renderer's own world bounds is kept. Works on meshes that aren't readable too.
+        internal static Vector3[] Surface(SkinnedMeshRenderer skin, Mesh baked, out string how, out float score)
+        {
+            how = "-"; score = float.MaxValue;
+            Vector3[] best = null;
+            var target = skin.bounds;
+            var full = skin.transform.localToWorldMatrix;
+            var noScale = Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
+            foreach (bool useScale in new[] { false, true })
+            {
+                Vector3[] local;
+                try { skin.BakeMesh(baked, useScale); local = baked.vertices; }
+                catch { continue; }
+                if (local == null || local.Length == 0) continue;
+                foreach (bool scaled in new[] { true, false })
+                {
+                    var place = scaled ? full : noScale;
+                    var points = new Vector3[local.Length];
+                    var box = new Bounds(place.MultiplyPoint3x4(local[0]), Vector3.zero);
+                    for (int i = 0; i < local.Length; i++) box.Encapsulate(points[i] = place.MultiplyPoint3x4(local[i]));
+                    float size = Mathf.Max(target.size.magnitude, 0.001f);
+                    float s = Mathf.Abs(Mathf.Log(Mathf.Max(box.size.magnitude, 0.00001f) / size)) + (box.center - target.center).magnitude / size;
+                    if (s < score) { score = s; best = points; how = (useScale ? "scaled bake" : "unscaled bake") + (scaled ? ", full transform" : ", no scale"); }
+                }
+            }
+            return best;
+        }
 
         internal static void Save(Character animal, Transform head, Transform neck)
         {
@@ -68,17 +100,18 @@ namespace PotatoFarmer
                     BoneWeight[] weights = null;
                     if (readable)
                         try { weights = shared.boneWeights; } catch { weights = null; }
-                    try { skin.BakeMesh(baked, true); }
-                    catch (System.Exception e)
+                    var world = Surface(skin, baked, out string how, out float score);
+                    if (world == null)
                     {
-                        text.Append($"note\tmesh {m} could not be baked: {e.GetBaseException().Message}\n");
+                        text.Append($"note\tmesh {m} could not be baked\n");
                         continue;
                     }
-                    var place = Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
-                    var vertices = baked.vertices;
-                    for (int i = 0; i < vertices.Length; i++)
+                    var bounds = skin.bounds;
+                    text.Append($"bake\t{m}\t{how}\t{F(score)}\n");
+                    text.Append($"bounds\t{m}\t{V(space.MultiplyPoint3x4(bounds.center))}\t{V(bounds.size)}\n");
+                    for (int i = 0; i < world.Length; i++)
                     {
-                        text.Append($"v\t{m}\t{V(space.MultiplyPoint3x4(place.MultiplyPoint3x4(vertices[i])))}");
+                        text.Append($"v\t{m}\t{V(space.MultiplyPoint3x4(world[i]))}");
                         if (weights != null && i < weights.Length)
                         {
                             var w = weights[i];
