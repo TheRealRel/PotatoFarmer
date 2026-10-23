@@ -22,7 +22,7 @@ namespace PotatoFarmer
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Id = "potato.farmer", Version = "1.2.0";
+        public const string Id = "potato.farmer", Version = "1.3.0";
         // Saved in worlds: never rename.
         public const string TroughPiece = "piece_potato_trough";
         public const string TroughName = "$piece_potato_trough";
@@ -36,12 +36,16 @@ namespace PotatoFarmer
         public const string CaskName = "$piece_potato_cask";
         private const string CaskDescription = "$piece_potato_cask_description";
         private const string CaskSection = "3 - Cask";
+        public const string LickPiece = "piece_potato_lick";
+        public const string LickName = "$piece_potato_lick";
+        private const string LickDescription = "$piece_potato_lick_description";
+        private const string LickSection = "4 - Lick";
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<int> TroughCapacity, RoostCapacity, RoostFlock, CaskBatches;
-        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix;
-        internal static ConfigEntry<float> TroughReach, RoostReach;
-        private static Piece troughPiece, roostPiece, caskPiece;
+        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix, LickEnabled;
+        internal static ConfigEntry<float> TroughReach, RoostReach, LickReach, LickFedTime;
+        private static Piece troughPiece, roostPiece, caskPiece, lickPiece;
 
         private void Awake()
         {
@@ -75,6 +79,14 @@ namespace PotatoFarmer
             CaskMix = Config.Bind(CaskSection, "Mix mead bases", false,
                 new ConfigDescription("Let one cask brew different mead bases at once. Off: a cask brews one kind at a time, until it's emptied. Set by the server.", null, serverSet));
             CaskEnabled.SettingChanged += (_, __) => { if (caskPiece) caskPiece.m_enabled = CaskEnabled.Value; };
+            LickEnabled = Config.Bind(LickSection, "Enabled", true,
+                new ConfigDescription("Show the salt lick on the hammer. Licks already built stay and keep working. Set by the server.", null, serverSet));
+            LickFedTime = Config.Bind(LickSection, "Fed time", 2f,
+                new ConfigDescription("Tamed animals near a lick stay fed this many times as long between meals (on top of any other mod that changes it). 1 = no change. Set by the server.",
+                    new AcceptableValueRange<float>(1f, 5f), serverSet));
+            LickReach = Config.Bind(LickSection, "Reach", 10f,
+                new ConfigDescription("How far away (metres) the lick works. 10 covers a pen. Set by the server.", new AcceptableValueRange<float>(2f, 30f), serverSet));
+            LickEnabled.SettingChanged += (_, __) => { if (lickPiece) lickPiece.m_enabled = LickEnabled.Value; };
             new Harmony(Id).PatchAll(typeof(Plugin).Assembly);
             PrefabManager.OnVanillaPrefabsAvailable += AddPieces;
         }
@@ -90,6 +102,8 @@ namespace PotatoFarmer
                 { RoostDescription.Substring(1), "A nesting box watched over by Gullinkambi, the golden-combed rooster of Valhalla. Gathers the eggs your hens lay nearby, so they keep laying." },
                 { CaskName.Substring(1), "Heiðrún's Cask" },
                 { CaskDescription.Substring(1), "A great mead cask blessed by Heiðrún, the goat whose udder runs with mead in Valhalla. Brews several mead bases at once, each like a fermenter of its own. Needs a roof." },
+                { LickName.Substring(1), "Auðhumla's Lick" },
+                { LickDescription.Substring(1), "A block of salt on carved stone, for Auðhumla, the first cow, who licked the first god out of the salt ice. Tamed animals nearby stay fed longer between meals." },
             });
             try { AddTrough(); }
             catch (Exception e) { Log.LogError("Couldn't add the feeding trough: " + e); }
@@ -97,6 +111,8 @@ namespace PotatoFarmer
             catch (Exception e) { Log.LogError("Couldn't add the roost: " + e); }
             try { AddCask(); }
             catch (Exception e) { Log.LogError("Couldn't add the cask: " + e); }
+            try { AddLick(); }
+            catch (Exception e) { Log.LogError("Couldn't add the salt lick: " + e); }
         }
 
         private static void AddTrough()
@@ -221,6 +237,41 @@ namespace PotatoFarmer
             if (!GUIManager.IsHeadless()) caskPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 230f, 0f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Cask added to the hammer.");
+        }
+
+        private static void AddLick()
+        {
+            var piece = new CustomPiece(LickPiece, "piece_table", new PieceConfig
+            {
+                Name = LickName,
+                Description = LickDescription,
+                PieceTable = "Hammer",
+                Category = "Furniture",
+                CraftingStation = "forge",
+                Requirements = new[] { new RequirementConfig("Stone", 10, 0, true), new RequirementConfig("Flint", 4, 0, true), new RequirementConfig("Tin", 2, 0, true) },
+            });
+            if (!piece.PiecePrefab)
+            {
+                Log.LogWarning("The wooden table to build the salt lick from wasn't found; no salt lick this session.");
+                return;
+            }
+            var mesh = Assets.LoadMesh("lick", Lick.Size);
+            if (!mesh) return;
+            // Matte stone and salt, no shine.
+            var look = new PieceLook("lick", 1f, 0f);
+            var prefab = piece.PiecePrefab;
+            Rebuild(prefab, mesh, look.Material);
+            // The stone base with the salt block, and the carved backboard.
+            AddBox(prefab, "Base", new Vector3(0f, 0.225f, 0f), new Vector3(1f, 0.45f, 0.78f), Lick.Size);
+            AddBox(prefab, "Back", new Vector3(0.01f, 0.79f, -0.31f), new Vector3(0.72f, 0.7f, 0.17f), Lick.Size);
+            var wear = prefab.GetComponent<WearNTear>();
+            wear.m_materialType = WearNTear.MaterialType.Stone;
+            prefab.AddComponent<Lick>();
+            lickPiece = piece.Piece;
+            lickPiece.m_enabled = LickEnabled.Value;
+            if (!GUIManager.IsHeadless()) lickPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            PieceManager.Instance.AddPiece(piece);
+            Log.LogInfo("Salt lick added to the hammer.");
         }
 
         // A vanilla piece supplies the basics (building, wear, hit and break effects); its looks and colliders are
