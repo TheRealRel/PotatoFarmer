@@ -208,6 +208,7 @@ namespace PotatoFarmer
             rope.Lead = Holder("PotatoPostRope", rope.Mesh);
             var head = Head(animal);
             rope.Neck = FindNeck(animal.transform, head, out string how);
+            NeckData.Save(animal, head, rope.Neck);
             if (!rope.Neck) return rope;
             Vector3 center = rope.Neck.position;
             Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
