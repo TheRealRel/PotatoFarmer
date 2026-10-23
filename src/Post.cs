@@ -20,9 +20,8 @@ namespace PotatoFarmer
         private static readonly Vector3[] Rings = { new Vector3(0.32f, 1.45f, 0f), new Vector3(-0.33f, 1.62f, 0f) };
 
         private ZNetView view;
-        private readonly Dictionary<Character, LineRenderer> ropes = new Dictionary<Character, LineRenderer>();
+        private readonly Dictionary<Character, Rope> ropes = new Dictionary<Character, Rope>();
         private float nextScan;
-        private static Material ropeMaterial;
         private static bool ropeLooked;
 
         private void Awake()
@@ -99,6 +98,10 @@ namespace PotatoFarmer
         }
 
         // ------------------------------------------------------------------ ropes
+        // Each tied animal gets a rope from the post's nearer ring to a loop around its neck, both drawn with the
+        // harpoon's own rope (its material, width and tiling).
+        private sealed class Rope { public LineRenderer Line, Collar; }
+
         private void Update()
         {
             if (GUIManagerHeadless()) return;
@@ -108,22 +111,59 @@ namespace PotatoFarmer
                 var tied = Tied();
                 foreach (var gone in ropes.Keys.Where(c => !c || !tied.Contains(c)).ToList())
                 {
-                    if (ropes[gone]) Destroy(ropes[gone].gameObject);
+                    Remove(ropes[gone]);
                     ropes.Remove(gone);
                 }
                 foreach (var animal in tied)
-                    if (!ropes.ContainsKey(animal)) ropes[animal] = MakeRope();
+                    if (!ropes.ContainsKey(animal)) ropes[animal] = new Rope { Line = MakeLine("PotatoPostRope", 10, false), Collar = MakeLine("PotatoPostCollar", 12, true) };
             }
+        }
+
+        private static void Remove(Rope rope)
+        {
+            if (rope?.Line) Destroy(rope.Line.gameObject);
+            if (rope?.Collar) Destroy(rope.Collar.gameObject);
+        }
+
+        private static readonly AccessTools.FieldRef<Character, Transform> HeadBone = AccessTools.FieldRefAccess<Character, Transform>("m_head");
+
+        // The neck: part way from the head back towards the body's centre. The loop lies across the neck.
+        private static void Neck(Character animal, out Vector3 neck, out Vector3 along, out float radius)
+        {
+            Vector3 center = animal.GetCenterPoint();
+            var headBone = HeadBone(animal);
+            Vector3 head = headBone ? headBone.position : center + animal.transform.forward * animal.GetRadius() + Vector3.up * animal.GetRadius() * 0.5f;
+            neck = Vector3.Lerp(head, center, 0.35f);
+            along = head - center;
+            if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
+            along.Normalize();
+            radius = Mathf.Clamp(animal.GetRadius() * 0.42f, 0.12f, 0.5f);
         }
 
         private void LateUpdate()
         {
             foreach (var pair in ropes)
             {
-                if (!pair.Key || !pair.Value) continue;
-                Vector3 end = pair.Key.GetCenterPoint() + Vector3.up * (pair.Key.GetRadius() * 0.4f);
-                Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - end).sqrMagnitude).First();
-                var line = pair.Value;
+                var animal = pair.Key;
+                var rope = pair.Value;
+                if (!animal || rope?.Line == null || rope.Collar == null) continue;
+                Neck(animal, out var neck, out var along, out float radius);
+                // The collar: a ring across the neck.
+                Vector3 a = Vector3.Cross(along, Vector3.up);
+                if (a.sqrMagnitude < 0.0001f) a = Vector3.Cross(along, Vector3.right);
+                a.Normalize();
+                Vector3 c = Vector3.Cross(along, a).normalized;
+                int n = rope.Collar.positionCount;
+                for (int i = 0; i < n; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / n;
+                    rope.Collar.SetPosition(i, neck + (a * Mathf.Cos(angle) + c * Mathf.Sin(angle)) * radius);
+                }
+                // The lead: from the nearer ring to the point of the collar facing the post.
+                Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
+                Vector3 toPost = Vector3.ProjectOnPlane(start - neck, along);
+                Vector3 end = neck + (toPost.sqrMagnitude > 0.0001f ? toPost.normalized : a) * radius;
+                var line = rope.Line;
                 float length = Vector3.Distance(start, end);
                 float sag = Mathf.Clamp(Plugin.PostRope.Value - length, 0f, 1.2f) * 0.5f + 0.05f;
                 for (int i = 0; i < line.positionCount; i++)
@@ -136,49 +176,62 @@ namespace PotatoFarmer
 
         private void OnDestroy()
         {
-            foreach (var rope in ropes.Values) if (rope) Destroy(rope.gameObject);
+            foreach (var rope in ropes.Values) Remove(rope);
             ropes.Clear();
         }
 
-        private LineRenderer MakeRope()
+        private LineRenderer MakeLine(string name, int points, bool loop)
         {
-            var go = new GameObject("PotatoPostRope");
+            var go = new GameObject(name);
             go.transform.SetParent(transform, false);
             var line = go.AddComponent<LineRenderer>();
             line.useWorldSpace = true;
-            line.positionCount = 10;
-            line.widthMultiplier = 0.045f;
+            line.positionCount = points;
+            line.loop = loop;
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var material = RopeMaterial();
-            if (material)
+            var look = HarpoonRope();
+            if (look)
             {
-                line.sharedMaterial = material;
-                line.textureMode = LineTextureMode.Tile;
+                line.sharedMaterial = look.sharedMaterial;
+                line.textureMode = look.textureMode;
+                line.widthCurve = look.widthCurve;
+                line.colorGradient = look.colorGradient;
+                line.alignment = look.alignment;
+                line.numCapVertices = look.numCapVertices;
+                // The harpoon's rope is at its thickest up close; a tie rope always is.
+                line.widthMultiplier = harpoonThickness * (loop ? 0.7f : 1f);
             }
             else
             {
                 line.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
                 line.startColor = line.endColor = new Color(0.36f, 0.27f, 0.16f);
+                line.widthMultiplier = loop ? 0.03f : 0.045f;
             }
             return line;
         }
 
-        // The rope the game draws for the Abyssal Harpoon: found on whichever of the game's prefabs carries the rope line.
-        private static Material RopeMaterial()
+        private static LineRenderer harpoonLine;
+        private static float harpoonThickness = 0.8f;
+
+        // The rope the game draws for the Abyssal Harpoon: the "Harpooned" status effect spawns it when the harpoon hits.
+        private static LineRenderer HarpoonRope()
         {
-            if (ropeLooked) return ropeMaterial;
+            if (ropeLooked) return harpoonLine;
             ropeLooked = true;
-            if (!ZNetScene.instance) return null;
-            foreach (var prefab in ZNetScene.instance.m_prefabs)
+            var db = ObjectDB.instance;
+            if (db)
             {
-                var connect = prefab ? prefab.GetComponentInChildren<LineConnect>(true) : null;
-                var line = connect ? connect.GetComponent<LineRenderer>() : null;
-                if (line && line.sharedMaterial)
-                {
-                    ropeMaterial = line.sharedMaterial;
-                    Plugin.Log.LogInfo($"Hitching post rope: {ropeMaterial.name} from {prefab.name}.");
-                    return ropeMaterial;
-                }
+                foreach (var effect in db.m_StatusEffects.OfType<SE_Harpooned>())
+                    foreach (var entry in effect.m_startEffects?.m_effectPrefabs ?? new EffectList.EffectData[0])
+                    {
+                        var connect = entry?.m_prefab ? entry.m_prefab.GetComponentInChildren<LineConnect>(true) : null;
+                        var line = connect ? connect.GetComponent<LineRenderer>() : null;
+                        if (!line || !line.sharedMaterial) continue;
+                        harpoonLine = line;
+                        harpoonThickness = connect.m_dynamicThickness ? connect.m_maxThickness : line.widthMultiplier;
+                        Plugin.Log.LogInfo($"Hitching post rope: {line.sharedMaterial.name} from {entry.m_prefab.name} ({effect.name}), thickness {harpoonThickness}.");
+                        return harpoonLine;
+                    }
             }
             Plugin.Log.LogWarning("The harpoon's rope wasn't found; the hitching post draws a plain rope.");
             return null;
