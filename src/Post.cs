@@ -104,7 +104,18 @@ namespace PotatoFarmer
         private const int Sides = 12, Segments = 12;
         // Three strands twisting round: one full turn of the lay every Twist metres, shaped into the tube and the texture.
         private const float Twist = 0.14f, Spacing = 0.02f;
-        private sealed class Rope { public GameObject Lead, Collar; public Mesh Mesh; public Transform Neck; public float CollarRadius; }
+        private sealed class Rope
+        {
+            public GameObject Lead, Collar;
+            public Mesh Mesh, CollarMesh;
+            public Transform Neck;
+            // The neck ring, measured off the animal's body when tied: its centre and axes in the neck bone's space, and
+            // its distance from the centre (in metres) at each of the Bins angles round the neck.
+            public Vector3 LocalCenter, LocalA, LocalC;
+            public float[] Radii;
+        }
+        private const int Bins = 48;
+        private const float Pull = 0.045f;  // how far the lead draws the ring out towards the post
         private static Material ropeLook;
 
         private void Update()
@@ -128,6 +139,7 @@ namespace PotatoFarmer
             if (rope.Lead) Destroy(rope.Lead);
             if (rope.Collar) Destroy(rope.Collar);
             if (rope.Mesh) Destroy(rope.Mesh);
+            if (rope.CollarMesh) Destroy(rope.CollarMesh);
         }
 
         private static readonly AccessTools.FieldRef<Character, Transform> HeadBone = AccessTools.FieldRefAccess<Character, Transform>("m_head");
@@ -186,26 +198,88 @@ namespace PotatoFarmer
         {
             var rope = new Rope { Mesh = new Mesh { name = "potato_post_rope" } };
             rope.Mesh.MarkDynamic();
-            rope.Lead = new GameObject("PotatoPostRope");
-            rope.Lead.transform.SetParent(transform, false);
-            rope.Lead.AddComponent<MeshFilter>().sharedMesh = rope.Mesh;
-            rope.Lead.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
+            rope.Lead = Holder("PotatoPostRope", rope.Mesh);
             rope.Neck = FindNeck(animal);
+            if (!rope.Neck) return rope;
             var head = HeadBone(animal);
-            if (rope.Neck)
-            {
-                // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
-                Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
-                if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
-                rope.CollarRadius = Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f);
-                rope.Collar = new GameObject("PotatoPostCollar");
-                rope.Collar.transform.SetParent(rope.Neck, false);
-                rope.Collar.transform.rotation = Quaternion.LookRotation(along.normalized, animal.transform.up);
-                rope.Collar.transform.localScale = new Vector3(1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.x), 1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.y), 1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.z));
-                rope.Collar.AddComponent<MeshFilter>().sharedMesh = Ring(rope.CollarRadius);
-                rope.Collar.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
-            }
+            // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
+            Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
+            if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
+            along.Normalize();
+            Vector3 a = Vector3.Cross(along, animal.transform.up);
+            if (a.sqrMagnitude < 0.0001f) a = Vector3.Cross(along, Vector3.right);
+            a.Normalize();
+            Vector3 c = Vector3.Cross(along, a).normalized;
+            float guess = Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f);
+            Vector3 center = rope.Neck.position;
+            rope.Radii = Measure(animal, ref center, a, c, along, guess);
+            rope.LocalCenter = rope.Neck.InverseTransformPoint(center);
+            rope.LocalA = rope.Neck.InverseTransformDirection(a);
+            rope.LocalC = rope.Neck.InverseTransformDirection(c);
+            rope.CollarMesh = new Mesh { name = "potato_post_collar" };
+            rope.CollarMesh.MarkDynamic();
+            rope.Collar = Holder("PotatoPostCollar", rope.CollarMesh);
             return rope;
+        }
+
+        private GameObject Holder(string name, Mesh mesh)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
+            return go;
+        }
+
+        // The neck's real outline where the ring goes: a snapshot of the animal's body in its current pose, the surface
+        // points in a thin slice across the neck, their middle (the ring is centred there) and, at each angle round it,
+        // the outermost surface, plus a little so the rope rests on the hide. Falls back to a plain circle.
+        private static float[] Measure(Character animal, ref Vector3 center, Vector3 a, Vector3 c, Vector3 along, float guess)
+        {
+            var radii = Enumerable.Repeat(guess, Bins).ToArray();
+            float slab = Mathf.Max(0.03f, guess * 0.35f), reach = guess * 2.4f;
+            var slice = new List<Vector2>();
+            var baked = new Mesh();
+            try
+            {
+                foreach (var skin in animal.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    if (!skin.enabled || !skin.gameObject.activeInHierarchy || !skin.sharedMesh) continue;
+                    skin.BakeMesh(baked, true);
+                    var place = Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
+                    foreach (var v in baked.vertices)
+                    {
+                        Vector3 offset = place.MultiplyPoint3x4(v) - center;
+                        if (Mathf.Abs(Vector3.Dot(offset, along)) > slab) continue;
+                        var flat = new Vector2(Vector3.Dot(offset, a), Vector3.Dot(offset, c));
+                        if (flat.sqrMagnitude <= reach * reach) slice.Add(flat);
+                    }
+                }
+            }
+            finally { Object.Destroy(baked); }
+            if (slice.Count < 24) return radii;
+            var middle = new Vector2(slice.Average(p => p.x), slice.Average(p => p.y));
+            var outer = new float[Bins];
+            foreach (var p in slice)
+            {
+                var d = p - middle;
+                int bin = ((int)Mathf.Floor((Mathf.Atan2(d.y, d.x) / (Mathf.PI * 2f) + 1f) * Bins)) % Bins;
+                outer[bin] = Mathf.Max(outer[bin], d.magnitude);
+            }
+            int filled = outer.Count(r => r > 0f);
+            if (filled < Bins / 2) return radii;
+            // Fill empty angles from their neighbours, then smooth.
+            for (int pass = 0; pass < Bins && outer.Any(r => r <= 0f); pass++)
+                for (int i = 0; i < Bins; i++)
+                    if (outer[i] <= 0f)
+                    {
+                        float l = outer[(i + Bins - 1) % Bins], r = outer[(i + 1) % Bins];
+                        if (l > 0f || r > 0f) outer[i] = l > 0f && r > 0f ? (l + r) * 0.5f : Mathf.Max(l, r);
+                    }
+            for (int i = 0; i < Bins; i++)
+                radii[i] = (outer[(i + Bins - 1) % Bins] + outer[i] * 2f + outer[(i + 1) % Bins]) / 4f + RopeRadius * 0.6f;
+            center += a * middle.x + c * middle.y;
+            return radii;
         }
 
         private void LateUpdate()
@@ -215,15 +289,29 @@ namespace PotatoFarmer
                 var animal = pair.Key;
                 var rope = pair.Value;
                 if (!animal || rope?.Mesh == null) continue;
-                Vector3 neck = rope.Collar ? rope.Collar.transform.position : animal.GetCenterPoint();
+                Vector3 neck = rope.Neck ? rope.Neck.TransformPoint(rope.LocalCenter) : animal.GetCenterPoint();
                 Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
                 Vector3 end = neck;
-                if (rope.Collar)
+                if (rope.Neck && rope.CollarMesh != null)
                 {
-                    // Where the lead meets the ring: the ring's point facing the post.
-                    Vector3 axis = rope.Collar.transform.forward;
+                    Vector3 a = rope.Neck.TransformDirection(rope.LocalA).normalized;
+                    Vector3 c = rope.Neck.TransformDirection(rope.LocalC).normalized;
+                    Vector3 axis = Vector3.Cross(a, c);
                     Vector3 toPost = Vector3.ProjectOnPlane(start - neck, axis);
-                    if (toPost.sqrMagnitude > 0.0001f) end = neck + toPost.normalized * rope.CollarRadius;
+                    Vector3 d = toPost.sqrMagnitude > 0.0001f ? toPost.normalized : a;
+                    // The ring round the neck, drawn out into a point where the lead pulls it.
+                    var loop = new Vector3[Bins + 1];
+                    float best = -2f;
+                    for (int i = 0; i <= Bins; i++)
+                    {
+                        float angle = (i % Bins + 0.5f) * Mathf.PI * 2f / Bins;
+                        Vector3 dir = a * Mathf.Cos(angle) + c * Mathf.Sin(angle);
+                        float facing = Vector3.Dot(dir, d);
+                        float w = Mathf.Max(0f, facing);
+                        loop[i] = neck + dir * (rope.Radii[i % Bins] + Pull * w * w * w * w * w * w);
+                        if (facing > best) { best = facing; end = loop[i]; }
+                    }
+                    Tube(rope.CollarMesh, loop, rope.Collar.transform);
                 }
                 float length = Vector3.Distance(start, end);
                 float sag = Mathf.Clamp(Plugin.PostRope.Value - length, 0f, 1.2f) * 0.5f + 0.05f;
@@ -309,23 +397,6 @@ namespace PotatoFarmer
             mesh.uv = uvs;
             mesh.triangles = triangles;
             mesh.RecalculateBounds();
-        }
-
-        // The neck ring: a small torus of rope in the XY plane, around the Z axis.
-        private static Mesh Ring(float radius)
-        {
-            const int around = 64;
-            var points = new Vector3[around + 1];
-            for (int i = 0; i <= around; i++)
-            {
-                float angle = i * Mathf.PI * 2f / around;
-                points[i] = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
-            }
-            var mesh = new Mesh { name = "potato_post_collar" };
-            var holder = new GameObject("PotatoRingTemp").transform;
-            Tube(mesh, points, holder);
-            Destroy(holder.gameObject);
-            return mesh;
         }
 
         // Rope look: the game's piece shader (lit like the post) with a twisted-rope texture drawn in pixels.
