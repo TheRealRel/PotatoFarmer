@@ -13,7 +13,7 @@ namespace PotatoFarmer
         private const float DispenseDelay = 3f;
         // How big the trough is built, relative to the model file (2 m long). Every measurement below is for the model
         // file and is multiplied by this, so the model, its collision and the bowl always line up.
-        internal const float Size = 1.1f;
+        internal const float Size = 1.21f;
         // The bowl floor, and the box above it where bites and food models sit (trough space).
         internal static readonly Vector3 BowlFloor = new Vector3(0f, 0.215f, 0f) * Size;
         private static readonly Vector3 BowlCenter = new Vector3(0f, 0.3f, 0f) * Size, BowlHalfSize = new Vector3(0.75f, 0.15f, 0.22f) * Size;
