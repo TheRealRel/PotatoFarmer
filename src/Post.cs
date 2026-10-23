@@ -146,7 +146,14 @@ namespace PotatoFarmer
 
         // The neck bone: a bone named like a neck on the way from the body to the head (else the one nearest the head),
         // else the bone the head hangs from, else the head itself.
-        private static Transform FindNeck(Character animal) => FindNeck(animal.transform, HeadBone(animal), out _);
+        private static Transform FindNeck(Character animal) => FindNeck(animal.transform, Head(animal), out _);
+
+        // The head bone the game knows, else a bone named like a head (some rigs, like the hen's, have none set).
+        private static Transform Head(Character animal) => HeadBone(animal) ?? NamedHead(animal.transform);
+
+        private static Transform NamedHead(Transform root) => root.GetComponentsInChildren<Transform>(true)
+            .Where(b => b != root && b.name.IndexOf("head", System.StringComparison.OrdinalIgnoreCase) >= 0 && b.GetComponent<Renderer>() == null)
+            .OrderBy(b => b.name.Length).FirstOrDefault();
 
         internal static Transform FindNeck(Transform root, Transform head, out string how)
         {
@@ -186,7 +193,7 @@ namespace PotatoFarmer
                 {
                     var character = prefab ? prefab.GetComponent<Character>() : null;
                     if (!character || character.IsPlayer() || (!prefab.GetComponent<Tameable>() && !prefab.GetComponent<Procreation>())) continue;
-                    var neck = FindNeck(prefab.transform, HeadBone(character), out string how);
+                    var neck = FindNeck(prefab.transform, HeadBone(character) ?? NamedHead(prefab.transform), out string how);
                     lines.Add($"{prefab.name}: {(neck ? neck.name : "-")} ({how})");
                 }
                 lines.Sort();
@@ -201,7 +208,7 @@ namespace PotatoFarmer
             rope.Lead = Holder("PotatoPostRope", rope.Mesh);
             rope.Neck = FindNeck(animal);
             if (!rope.Neck) return rope;
-            var head = HeadBone(animal);
+            var head = Head(animal);
             // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
             Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
             if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
@@ -289,7 +296,7 @@ namespace PotatoFarmer
                 var animal = pair.Key;
                 var rope = pair.Value;
                 if (!animal || rope?.Mesh == null) continue;
-                Vector3 neck = rope.Neck ? rope.Neck.TransformPoint(rope.LocalCenter) : animal.GetCenterPoint();
+                Vector3 neck = rope.Neck ? rope.Neck.TransformPoint(rope.LocalCenter) : animal.GetCenterPoint() + Vector3.up * (animal.GetRadius() * 0.4f);
                 Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
                 Vector3 end = neck;
                 if (rope.Neck && rope.CollarMesh != null)
