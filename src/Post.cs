@@ -106,7 +106,6 @@ namespace PotatoFarmer
         private const float Twist = 0.14f, Spacing = 0.02f;
         private sealed class Rope { public GameObject Lead, Collar; public Mesh Mesh; public Transform Neck; public float CollarRadius; }
         private static Material ropeLook;
-        private static readonly HashSet<string> loggedBones = new HashSet<string>();
 
         private void Update()
         {
@@ -133,19 +132,54 @@ namespace PotatoFarmer
 
         private static readonly AccessTools.FieldRef<Character, Transform> HeadBone = AccessTools.FieldRefAccess<Character, Transform>("m_head");
 
-        // The neck bone: a bone named like a neck, else the bone the head hangs from.
-        private static Transform FindNeck(Character animal)
+        // The neck bone: a bone named like a neck on the way from the body to the head (else the one nearest the head),
+        // else the bone the head hangs from, else the head itself.
+        private static Transform FindNeck(Character animal) => FindNeck(animal.transform, HeadBone(animal), out _);
+
+        internal static Transform FindNeck(Transform root, Transform head, out string how)
         {
-            var head = HeadBone(animal);
-            var bones = animal.GetComponentsInChildren<Transform>(true);
-            string key = animal.name.Replace("(Clone)", "");
-            if (loggedBones.Add(key))
-                Plugin.Log.LogInfo($"Hitching post: {key} head bone {(head ? head.name : "none")}, parent {(head && head.parent ? head.parent.name : "none")}; " +
-                    $"neck-like bones: {string.Join(", ", bones.Where(b => b.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0).Select(b => b.name).ToArray())}");
-            var necks = bones.Where(b => b.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-            if (necks.Count > 0) return head ? necks.OrderBy(b => (b.position - head.position).sqrMagnitude).First() : necks[0];
-            if (head && head.parent && head.parent != animal.transform) return head.parent;
+            bool Neckish(Transform b) => b.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0 &&
+                b.name.IndexOf("lace", System.StringComparison.OrdinalIgnoreCase) < 0;
+            if (head)
+                for (var b = head.parent; b && b != root; b = b.parent)
+                    if (Neckish(b)) { how = "neck bone"; return b; }
+            var necks = root.GetComponentsInChildren<Transform>(true).Where(Neckish).ToList();
+            if (necks.Count > 0)
+            {
+                how = "neck bone (off the head's chain)";
+                return head ? necks.OrderBy(b => (b.position - head.position).sqrMagnitude).First() : necks[0];
+            }
+            if (head && head.parent && head.parent != root)
+            {
+                how = "the bone the head hangs from";
+                return head.parent;
+            }
+            how = head ? "the head (no neck)" : "no head bone: rope ties to the body";
             return head;
+        }
+
+        // Once a session, after every mod has added its creatures: where each tameable or breedable creature's neck ring
+        // would sit, in the log, so creatures without a proper neck show up.
+        [HarmonyPatch(typeof(Player), nameof(Player.OnSpawned))]
+        private static class NeckCheck
+        {
+            private static bool done;
+
+            private static void Postfix(Player __instance)
+            {
+                if (done || __instance != Player.m_localPlayer || !ZNetScene.instance) return;
+                done = true;
+                var lines = new List<string>();
+                foreach (var prefab in ZNetScene.instance.m_prefabs)
+                {
+                    var character = prefab ? prefab.GetComponent<Character>() : null;
+                    if (!character || character.IsPlayer() || (!prefab.GetComponent<Tameable>() && !prefab.GetComponent<Procreation>())) continue;
+                    var neck = FindNeck(prefab.transform, HeadBone(character), out string how);
+                    lines.Add($"{prefab.name}: {(neck ? neck.name : "-")} ({how})");
+                }
+                lines.Sort();
+                Plugin.Log.LogInfo($"Hitching post neck check, {lines.Count} tameable creatures:\n  " + string.Join("\n  ", lines.ToArray()));
+            }
         }
 
         private Rope MakeRope(Character animal)
