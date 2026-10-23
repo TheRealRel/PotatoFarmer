@@ -1,6 +1,6 @@
 # Turns a .glb (e.g. from Meshy) into a PotatoFarmer piece's assets: <name>.mesh and three textures in the layout
 # Valheim's piece shader (Custom/Piece) expects.
-#   python3 -I convert.py model.glb assets_dir name [length_m] [pixels_per_m] [metal=H,S,V] [wood=H,S,V]
+#   python3 -I convert.py model.glb assets_dir name [length_m] [pixels_per_m] [metal=H,S,V] [wood=H,S,V] [px=N]
 # metal= / wood= recolor the metal parts (from the metal map) or the wood (everything else except bright straw-yellow):
 # H = hue in degrees, S = saturation (0-1), V = brightness multiplier. Black metal: metal=0,0.03,0.55
 # The Potato look: textures sized to about 50 pixels per metre of surface (Valheim's forge is ~50, the reinforced
@@ -73,6 +73,8 @@ u0, u1, u2 = uv_src[idx_src[:, 0]], uv_src[idx_src[:, 1]], uv_src[idx_src[:, 2]]
 uv_area = (np.abs((u1[:, 0] - u0[:, 0]) * (u2[:, 1] - u0[:, 1]) - (u2[:, 0] - u0[:, 0]) * (u1[:, 1] - u0[:, 1])) / 2).sum()
 want = density * np.sqrt(surface / uv_area)
 px = int(2 ** max(5, min(11, round(np.log2(want)))))
+# px=N picks an exact texture size instead (the source texture's size must be a whole multiple of it).
+if "px" in options: px = int(options["px"])
 
 mat = gltf["materials"][prim["material"]]
 pbr = mat["pbrMetallicRoughness"]

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+- New: Heiðrún's Cask, a great mead cask that brews several mead bases at once, 4 by default (Batches setting), each like a fermenter of its own. Fine wood and black metal with a goat carved into each end, built at a forge from 30 Fine Wood, 6 Black Metal, 4 Tar and 20 Iron Nails. It follows the game's fermenter times and amounts, and PotatoTweaks' fermenter settings when that's installed. One kind of mead base at a time unless the server turns on Mix mead bases.
+- The trough and the roost are now built at a forge instead of a workbench.
+- The trough is 10% bigger, and its texture is evened out so its underside is no longer chunkier than the rest.
+- The roost's texture is re-made more cleanly, without blotches on flat areas.
+- A rewritten mod page with small piece icons.
+
 ## 1.1.3
 - Gullinbursti's Trough holds 100 pieces of food (was 40), and a full trough shows more food. A server that already has a config keeps its own number: set Capacity to 100 there.
 - Mixed foods are mashed together in the bowl instead of lying in groups, and the food sits down in the bowl rather than on top of it. A new trough screenshot on the mod page.

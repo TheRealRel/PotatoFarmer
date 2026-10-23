@@ -4,7 +4,7 @@
 #  3. paints ("bakes") the color and metal maps onto that layout by sampling the detailed model at every texel.
 # The detailed model's normal map is left out: it belongs to the detailed shape and would look wrong on the reduced
 # one, and at Valheim's pixel size the bumps barely show. Writes a new .glb for convert.py.
-#   python3 -I bake.py full.glb game.glb [triangles] [texture_px]
+#   python3 -I bake.py full.glb game.glb [triangles] [texture_px] [padding_px]
 # Needs: pip install pymeshlab xatlas scipy (and the libopengl0 system library on Linux).
 import io, json, struct, sys
 import numpy as np
@@ -15,6 +15,9 @@ from scipy.spatial import cKDTree
 src, dst = sys.argv[1], sys.argv[2]
 target = int(sys.argv[3]) if len(sys.argv) > 3 else 20000
 tex_px = int(sys.argv[4]) if len(sys.argv) > 4 else 1024
+# Space between the layout's pieces, in texels. The game blends smaller copies of the texture at a distance and at
+# glancing angles; too little space and neighbouring pieces' colours bleed into each other's edges there.
+padding = int(sys.argv[5]) if len(sys.argv) > 5 else 4
 
 data = open(src, "rb").read()
 jlen = struct.unpack("<I", data[12:16])[0]
@@ -62,7 +65,7 @@ print(f"reduced: {len(LF)} triangles")
 import xatlas
 atlas = xatlas.Atlas()
 atlas.add_mesh(LV.astype(np.float32), LF.astype(np.uint32), LN.astype(np.float32))
-pack = xatlas.PackOptions(); pack.resolution = tex_px; pack.padding = 4; pack.bilinear = True
+pack = xatlas.PackOptions(); pack.resolution = tex_px; pack.padding = padding; pack.bilinear = True
 atlas.generate(pack_options=pack)
 vmap, F, U = atlas[0]
 V = LV[vmap]; N = LN[vmap]; F = F.astype(np.int64); U = U.astype(np.float64)
@@ -115,7 +118,51 @@ def finish(values):
     img = img[near_painted[0], near_painted[1]]
     out = io.BytesIO(); Image.fromarray(img.round().clip(0, 255).astype(np.uint8), "RGB").save(out, "PNG"); return out.getvalue()
 
-src_uv = uv[src_vertex]
+# The texture spot: the closest point on the detailed surface, among the triangles around the picked vertex, with its
+# texture coordinates blended from that triangle's corners. (Copying the nearest vertex's coordinates instead painted
+# flat, sparsely-built areas in big blotches, one per detailed vertex, while busy carved areas came out fine.)
+order = np.argsort(idx.ravel(), kind="stable")
+starts = np.searchsorted(idx.ravel()[order], np.arange(len(pos)))
+counts = np.bincount(idx.ravel(), minlength=len(pos))
+FAN = 12
+
+def closest_on_triangles(p, a, b, c):
+    """Barycentric weights of the closest point to p on each triangle abc (all arrays (..., 3))."""
+    ab, ac, ap = b - a, c - a, p - a
+    d1 = (ab * ap).sum(-1); d2 = (ac * ap).sum(-1)
+    bp = p - b; d3 = (ab * bp).sum(-1); d4 = (ac * bp).sum(-1)
+    cp = p - c; d5 = (ab * cp).sum(-1); d6 = (ac * cp).sum(-1)
+    va = d3 * d6 - d5 * d4; vb = d5 * d2 - d1 * d6; vc = d1 * d4 - d3 * d2
+    denom = np.where(np.abs(va + vb + vc) < 1e-30, 1e-30, va + vb + vc)
+    v = vb / denom; w = vc / denom; u = 1 - v - w
+    out = np.stack([u, v, w], -1)
+    def put(mask, uu, vv, ww):
+        nonlocal out
+        out = np.where(mask[..., None], np.stack([uu, vv, ww], -1), out)
+    z = np.zeros_like(d1); one = np.ones_like(d1)
+    # Edges (checked before corners so corners win where both apply).
+    t = d1 / np.where(np.abs(d1 - d3) < 1e-30, 1e-30, d1 - d3); put((vc <= 0) & (d1 >= 0) & (d3 <= 0), 1 - t, t, z)
+    t = d2 / np.where(np.abs(d2 - d6) < 1e-30, 1e-30, d2 - d6); put((vb <= 0) & (d2 >= 0) & (d6 <= 0), 1 - t, z, t)
+    t = (d4 - d3) / np.where(np.abs((d4 - d3) + (d5 - d6)) < 1e-30, 1e-30, (d4 - d3) + (d5 - d6)); put((va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0), z, 1 - t, t)
+    put((d1 <= 0) & (d2 <= 0), one, z, z)
+    put((d3 >= 0) & (d4 <= d3), z, one, z)
+    put((d6 >= 0) & (d5 <= d6), z, z, one)
+    return out
+
+src_uv = np.zeros((len(points), 2))
+for s0 in range(0, len(points), 100000):
+    s1 = min(len(points), s0 + 100000)
+    vtx = src_vertex[s0:s1]
+    k = np.arange(FAN)[None, :]
+    slot = np.minimum(k, np.maximum(counts[vtx][:, None] - 1, 0))
+    faces = order[starts[vtx][:, None] + slot] // 3                      # (n, FAN) triangles around the vertex
+    tri = idx[faces]                                                    # (n, FAN, 3)
+    p = points[s0:s1][:, None, :]
+    bary = closest_on_triangles(p, pos[tri[..., 0]], pos[tri[..., 1]], pos[tri[..., 2]])
+    q = np.einsum("nfk,nfkd->nfd", bary, pos[tri])
+    dist = np.linalg.norm(q - p, axis=-1)
+    best = dist.argmin(1); rows = np.arange(s1 - s0)
+    src_uv[s0:s1] = np.einsum("nk,nkd->nd", bary[rows, best], uv[tri[rows, best]])
 baked_color = finish(sample(color_src, src_uv))
 baked_metal = finish(sample(metal_src, src_uv))
 flat = io.BytesIO(); Image.new("RGB", (4, 4), (128, 128, 255)).save(flat, "PNG")
