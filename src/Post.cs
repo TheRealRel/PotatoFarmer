@@ -1,6 +1,6 @@
 // Sleipnir's Post: a hitching post. Use it with a tamed animal following you to tie that animal to it; the animal then
-// stays within a rope's length of the post instead of wandering, and a rope (the harpoon's rope material) runs from the
-// post's ring to it. Use it with the hammer's alt key (Shift) to untie everything tied to it, which then follows you.
+// stays within a rope's length of the post instead of wandering, and a rope runs from the
+// post's ring to a ring around its neck. Use it with the hammer's alt key (Shift) to untie everything tied to it, which then follows you.
 // Built on the game's own "stay": tying sets the animal's patrol point to the post and shortens its wander range while
 // tied. The tie lives in the animal's network data, so every player sees the same ropes and it survives restarts.
 using System.Collections.Generic;
@@ -20,9 +20,9 @@ namespace PotatoFarmer
         private static readonly Vector3[] Rings = { new Vector3(0.32f, 1.45f, 0f), new Vector3(-0.33f, 1.62f, 0f) };
 
         private ZNetView view;
-        private readonly Dictionary<Character, Rope> ropes = new Dictionary<Character, Rope>();
+
         private float nextScan;
-        private static bool ropeLooked;
+        private readonly Dictionary<Character, Rope> ropes = new Dictionary<Character, Rope>();
 
         private void Awake()
         {
@@ -98,46 +98,78 @@ namespace PotatoFarmer
         }
 
         // ------------------------------------------------------------------ ropes
-        // Each tied animal gets a rope from the post's nearer ring to a loop around its neck, both drawn with the
-        // harpoon's own rope (its material, width and tiling).
-        private sealed class Rope { public LineRenderer Line, Collar; }
+        // Each tied animal gets a real rope: a round tube built along a sagging curve every frame, from the post's nearer
+        // ring to a rope ring around the animal's neck. The ring hangs on the neck bone, so it moves with the animation.
+        private const float RopeRadius = 0.022f;
+        private const int Sides = 6, Segments = 12;
+        private sealed class Rope { public GameObject Lead, Collar; public Mesh Mesh; public Transform Neck; public float CollarRadius; }
+        private static Material ropeLook;
+        private static readonly HashSet<string> loggedBones = new HashSet<string>();
 
         private void Update()
         {
             if (GUIManagerHeadless()) return;
-            if (Time.time >= nextScan)
+            if (Time.time < nextScan) return;
+            nextScan = Time.time + 0.5f;
+            var tied = Tied();
+            foreach (var gone in ropes.Keys.Where(c => !c || !tied.Contains(c)).ToList())
             {
-                nextScan = Time.time + 0.5f;
-                var tied = Tied();
-                foreach (var gone in ropes.Keys.Where(c => !c || !tied.Contains(c)).ToList())
-                {
-                    Remove(ropes[gone]);
-                    ropes.Remove(gone);
-                }
-                foreach (var animal in tied)
-                    if (!ropes.ContainsKey(animal)) ropes[animal] = new Rope { Line = MakeLine("PotatoPostRope", 10, false), Collar = MakeLine("PotatoPostCollar", 12, true) };
+                Remove(ropes[gone]);
+                ropes.Remove(gone);
             }
+            foreach (var animal in tied)
+                if (!ropes.ContainsKey(animal)) ropes[animal] = MakeRope(animal);
         }
 
         private static void Remove(Rope rope)
         {
-            if (rope?.Line) Destroy(rope.Line.gameObject);
-            if (rope?.Collar) Destroy(rope.Collar.gameObject);
+            if (rope == null) return;
+            if (rope.Lead) Destroy(rope.Lead);
+            if (rope.Collar) Destroy(rope.Collar);
+            if (rope.Mesh) Destroy(rope.Mesh);
         }
 
         private static readonly AccessTools.FieldRef<Character, Transform> HeadBone = AccessTools.FieldRefAccess<Character, Transform>("m_head");
 
-        // The neck: part way from the head back towards the body's centre. The loop lies across the neck.
-        private static void Neck(Character animal, out Vector3 neck, out Vector3 along, out float radius)
+        // The neck bone: a bone named like a neck, else the bone the head hangs from.
+        private static Transform FindNeck(Character animal)
         {
-            Vector3 center = animal.GetCenterPoint();
-            var headBone = HeadBone(animal);
-            Vector3 head = headBone ? headBone.position : center + animal.transform.forward * animal.GetRadius() + Vector3.up * animal.GetRadius() * 0.5f;
-            neck = Vector3.Lerp(head, center, 0.35f);
-            along = head - center;
-            if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
-            along.Normalize();
-            radius = Mathf.Clamp(animal.GetRadius() * 0.42f, 0.12f, 0.5f);
+            var head = HeadBone(animal);
+            var bones = animal.GetComponentsInChildren<Transform>(true);
+            string key = animal.name.Replace("(Clone)", "");
+            if (loggedBones.Add(key))
+                Plugin.Log.LogInfo($"Hitching post: {key} head bone {(head ? head.name : "none")}, parent {(head && head.parent ? head.parent.name : "none")}; " +
+                    $"neck-like bones: {string.Join(", ", bones.Where(b => b.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0).Select(b => b.name).ToArray())}");
+            var necks = bones.Where(b => b.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            if (necks.Count > 0) return head ? necks.OrderBy(b => (b.position - head.position).sqrMagnitude).First() : necks[0];
+            if (head && head.parent && head.parent != animal.transform) return head.parent;
+            return head;
+        }
+
+        private Rope MakeRope(Character animal)
+        {
+            var rope = new Rope { Mesh = new Mesh { name = "potato_post_rope" } };
+            rope.Mesh.MarkDynamic();
+            rope.Lead = new GameObject("PotatoPostRope");
+            rope.Lead.transform.SetParent(transform, false);
+            rope.Lead.AddComponent<MeshFilter>().sharedMesh = rope.Mesh;
+            rope.Lead.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
+            rope.Neck = FindNeck(animal);
+            var head = HeadBone(animal);
+            if (rope.Neck)
+            {
+                // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
+                Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
+                if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
+                rope.CollarRadius = Mathf.Clamp(animal.GetRadius() * 0.33f, 0.1f, 0.45f);
+                rope.Collar = new GameObject("PotatoPostCollar");
+                rope.Collar.transform.SetParent(rope.Neck, false);
+                rope.Collar.transform.rotation = Quaternion.LookRotation(along.normalized, animal.transform.up);
+                rope.Collar.transform.localScale = new Vector3(1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.x), 1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.y), 1f / Mathf.Max(0.0001f, rope.Neck.lossyScale.z));
+                rope.Collar.AddComponent<MeshFilter>().sharedMesh = Ring(rope.CollarRadius);
+                rope.Collar.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
+            }
+            return rope;
         }
 
         private void LateUpdate()
@@ -146,31 +178,26 @@ namespace PotatoFarmer
             {
                 var animal = pair.Key;
                 var rope = pair.Value;
-                if (!animal || rope?.Line == null || rope.Collar == null) continue;
-                Neck(animal, out var neck, out var along, out float radius);
-                // The collar: a ring across the neck.
-                Vector3 a = Vector3.Cross(along, Vector3.up);
-                if (a.sqrMagnitude < 0.0001f) a = Vector3.Cross(along, Vector3.right);
-                a.Normalize();
-                Vector3 c = Vector3.Cross(along, a).normalized;
-                int n = rope.Collar.positionCount;
-                for (int i = 0; i < n; i++)
-                {
-                    float angle = i * Mathf.PI * 2f / n;
-                    rope.Collar.SetPosition(i, neck + (a * Mathf.Cos(angle) + c * Mathf.Sin(angle)) * radius);
-                }
-                // The lead: from the nearer ring to the point of the collar facing the post.
+                if (!animal || rope?.Mesh == null) continue;
+                Vector3 neck = rope.Collar ? rope.Collar.transform.position : animal.GetCenterPoint();
                 Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
-                Vector3 toPost = Vector3.ProjectOnPlane(start - neck, along);
-                Vector3 end = neck + (toPost.sqrMagnitude > 0.0001f ? toPost.normalized : a) * radius;
-                var line = rope.Line;
+                Vector3 end = neck;
+                if (rope.Collar)
+                {
+                    // Where the lead meets the ring: the ring's point facing the post.
+                    Vector3 axis = rope.Collar.transform.forward;
+                    Vector3 toPost = Vector3.ProjectOnPlane(start - neck, axis);
+                    if (toPost.sqrMagnitude > 0.0001f) end = neck + toPost.normalized * rope.CollarRadius;
+                }
                 float length = Vector3.Distance(start, end);
                 float sag = Mathf.Clamp(Plugin.PostRope.Value - length, 0f, 1.2f) * 0.5f + 0.05f;
-                for (int i = 0; i < line.positionCount; i++)
+                var points = new Vector3[Segments + 1];
+                for (int i = 0; i <= Segments; i++)
                 {
-                    float t = i / (float)(line.positionCount - 1);
-                    line.SetPosition(i, Vector3.Lerp(start, end, t) + Vector3.down * (sag * 4f * t * (1f - t)));
+                    float t = i / (float)Segments;
+                    points[i] = Vector3.Lerp(start, end, t) + Vector3.down * (sag * 4f * t * (1f - t));
                 }
+                Tube(rope.Mesh, points, rope.Lead.transform);
             }
         }
 
@@ -180,61 +207,94 @@ namespace PotatoFarmer
             ropes.Clear();
         }
 
-        private LineRenderer MakeLine(string name, int points, bool loop)
+        // A round tube through the points (in world space), written into the mesh in the holder's local space.
+        private static void Tube(Mesh mesh, Vector3[] points, Transform holder)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(transform, false);
-            var line = go.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.positionCount = points;
-            line.loop = loop;
-            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var look = HarpoonRope();
-            if (look)
+            int rings = points.Length;
+            var vertices = new Vector3[rings * (Sides + 1)];
+            var normals = new Vector3[vertices.Length];
+            var uvs = new Vector2[vertices.Length];
+            var triangles = new int[(rings - 1) * Sides * 6];
+            float along = 0f;
+            Vector3 side = Vector3.up;
+            for (int i = 0; i < rings; i++)
             {
-                line.sharedMaterial = look.sharedMaterial;
-                line.textureMode = look.textureMode;
-                line.widthCurve = look.widthCurve;
-                line.colorGradient = look.colorGradient;
-                line.alignment = look.alignment;
-                line.numCapVertices = look.numCapVertices;
-                // The harpoon's rope is at its thickest up close; a tie rope always is.
-                line.widthMultiplier = harpoonThickness * (loop ? 0.7f : 1f);
+                Vector3 dir = (i < rings - 1 ? points[i + 1] - points[i] : points[i] - points[i - 1]).normalized;
+                if (i > 0) along += Vector3.Distance(points[i], points[i - 1]);
+                Vector3 a = Vector3.Cross(dir, Mathf.Abs(Vector3.Dot(dir, Vector3.up)) > 0.95f ? Vector3.right : Vector3.up).normalized;
+                Vector3 b = Vector3.Cross(dir, a);
+                for (int k = 0; k <= Sides; k++)
+                {
+                    float angle = k * Mathf.PI * 2f / Sides;
+                    Vector3 n = a * Mathf.Cos(angle) + b * Mathf.Sin(angle);
+                    int v = i * (Sides + 1) + k;
+                    vertices[v] = holder.InverseTransformPoint(points[i] + n * RopeRadius);
+                    normals[v] = holder.InverseTransformDirection(n);
+                    uvs[v] = new Vector2(k / (float)Sides, along * 6f);
+                }
             }
-            else
-            {
-                line.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
-                line.startColor = line.endColor = new Color(0.36f, 0.27f, 0.16f);
-                line.widthMultiplier = loop ? 0.03f : 0.045f;
-            }
-            return line;
+            int tri = 0;
+            for (int i = 0; i < rings - 1; i++)
+                for (int k = 0; k < Sides; k++)
+                {
+                    int v0 = i * (Sides + 1) + k, v1 = v0 + 1, v2 = v0 + Sides + 1, v3 = v2 + 1;
+                    triangles[tri++] = v0; triangles[tri++] = v2; triangles[tri++] = v1;
+                    triangles[tri++] = v1; triangles[tri++] = v2; triangles[tri++] = v3;
+                }
+            mesh.Clear();
+            mesh.vertices = vertices;
+            mesh.normals = normals;
+            mesh.uv = uvs;
+            mesh.triangles = triangles;
+            mesh.RecalculateBounds();
         }
 
-        private static LineRenderer harpoonLine;
-        private static float harpoonThickness = 0.8f;
-
-        // The rope the game draws for the Abyssal Harpoon: the "Harpooned" status effect spawns it when the harpoon hits.
-        private static LineRenderer HarpoonRope()
+        // The neck ring: a small torus of rope in the XY plane, around the Z axis.
+        private static Mesh Ring(float radius)
         {
-            if (ropeLooked) return harpoonLine;
-            ropeLooked = true;
-            var db = ObjectDB.instance;
-            if (db)
+            const int around = 16;
+            var points = new Vector3[around + 1];
+            for (int i = 0; i <= around; i++)
             {
-                foreach (var effect in db.m_StatusEffects.OfType<SE_Harpooned>())
-                    foreach (var entry in effect.m_startEffects?.m_effectPrefabs ?? new EffectList.EffectData[0])
-                    {
-                        var connect = entry?.m_prefab ? entry.m_prefab.GetComponentInChildren<LineConnect>(true) : null;
-                        var line = connect ? connect.GetComponent<LineRenderer>() : null;
-                        if (!line || !line.sharedMaterial) continue;
-                        harpoonLine = line;
-                        harpoonThickness = connect.m_dynamicThickness ? connect.m_maxThickness : line.widthMultiplier;
-                        Plugin.Log.LogInfo($"Hitching post rope: {line.sharedMaterial.name} from {entry.m_prefab.name} ({effect.name}), thickness {harpoonThickness}.");
-                        return harpoonLine;
-                    }
+                float angle = i * Mathf.PI * 2f / around;
+                points[i] = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
             }
-            Plugin.Log.LogWarning("The harpoon's rope wasn't found; the hitching post draws a plain rope.");
-            return null;
+            var mesh = new Mesh { name = "potato_post_collar" };
+            var holder = new GameObject("PotatoRingTemp").transform;
+            Tube(mesh, points, holder);
+            Destroy(holder.gameObject);
+            return mesh;
+        }
+
+        // Rope look: the game's piece shader (lit like the post) with a twisted-rope texture drawn in pixels.
+        private static Material RopeLook()
+        {
+            if (ropeLook) return ropeLook;
+            var template = Jotunn.Managers.PrefabManager.Cache.GetPrefab<Material>("ironchest");
+            ropeLook = template ? new Material(template) : new Material(Shader.Find("Standard"));
+            ropeLook.name = "potato_post_rope";
+            var texture = new Texture2D(8, 16, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat, name = "potato_rope_d" };
+            var light = new Color(0.62f, 0.5f, 0.33f);
+            var dark = new Color(0.36f, 0.27f, 0.17f);
+            for (int y = 0; y < 16; y++)
+                for (int x = 0; x < 8; x++)
+                {
+                    // Three strands twisting round: diagonal bands, each with a lit middle and a dark edge.
+                    int band = ((x * 2 + y) % 16 + 16) % 16;
+                    float shade = band < 2 ? 0f : band < 4 ? 0.4f : band < 9 ? 1f : 0.65f;
+                    texture.SetPixel(x, y, Color.Lerp(dark, light, shade));
+                }
+            texture.Apply();
+            ropeLook.SetTexture("_MainTex", texture);
+            if (ropeLook.HasProperty("_Color")) ropeLook.SetColor("_Color", Color.white);
+            var black = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            black.SetPixel(0, 0, new Color(0f, 0f, 0f, 0f));
+            black.Apply();
+            if (ropeLook.HasProperty("_MetallicTex")) ropeLook.SetTexture("_MetallicTex", black);
+            if (ropeLook.HasProperty("_MetallicGlossMap")) ropeLook.SetTexture("_MetallicGlossMap", black);
+            if (ropeLook.HasProperty("_BumpMap")) ropeLook.SetTexture("_BumpMap", null);
+            if (ropeLook.HasProperty("_Metallic")) ropeLook.SetFloat("_Metallic", 0f);
+            return ropeLook;
         }
 
         private static bool GUIManagerHeadless() => Jotunn.Managers.GUIManager.IsHeadless();
