@@ -16,8 +16,8 @@ namespace PotatoFarmer
         private const string TiedUser = "PotatoPost.User", TiedId = "PotatoPost.Id";
         private const float FollowersWithin = 20f;
         private const float Beside = 1.5f;
-        // The two iron rings on the post's sides, in the model's own space.
-        private static readonly Vector3[] Rings = { new Vector3(0.32f, 1.45f, 0f), new Vector3(-0.33f, 1.62f, 0f) };
+        // The bottoms of the two iron rings hanging from the crossbar, in the model's own space.
+        private static readonly Vector3[] Rings = { new Vector3(0.28f, 1.55f, 0f), new Vector3(-0.28f, 1.55f, 0f) };
 
         private ZNetView view;
 
@@ -100,8 +100,10 @@ namespace PotatoFarmer
         // ------------------------------------------------------------------ ropes
         // Each tied animal gets a real rope: a round tube built along a sagging curve every frame, from the post's nearer
         // ring to a rope ring around the animal's neck. The ring hangs on the neck bone, so it moves with the animation.
-        private const float RopeRadius = 0.022f;
-        private const int Sides = 6, Segments = 12;
+        private const float RopeRadius = 0.028f;
+        private const int Sides = 12, Segments = 12;
+        // Three strands twisting round: one full turn of the lay every Twist metres, shaped into the tube and the texture.
+        private const float Twist = 0.14f, Spacing = 0.02f;
         private sealed class Rope { public GameObject Lead, Collar; public Mesh Mesh; public Transform Neck; public float CollarRadius; }
         private static Material ropeLook;
         private static readonly HashSet<string> loggedBones = new HashSet<string>();
@@ -197,7 +199,7 @@ namespace PotatoFarmer
                     float t = i / (float)Segments;
                     points[i] = Vector3.Lerp(start, end, t) + Vector3.down * (sag * 4f * t * (1f - t));
                 }
-                Tube(rope.Mesh, points, rope.Lead.transform);
+                Tube(rope.Mesh, Resample(points), rope.Lead.transform);
             }
         }
 
@@ -205,6 +207,29 @@ namespace PotatoFarmer
         {
             foreach (var rope in ropes.Values) Remove(rope);
             ropes.Clear();
+        }
+
+        // Points every couple of centimetres along the curve, so the strands' twist shows.
+        private static Vector3[] Resample(Vector3[] points)
+        {
+            float total = 0f;
+            for (int i = 1; i < points.Length; i++) total += Vector3.Distance(points[i - 1], points[i]);
+            int count = Mathf.Clamp(Mathf.CeilToInt(total / Spacing), 2, 600) + 1;
+            var result = new Vector3[count];
+            int seg = 1;
+            float segStart = 0f, segLength = Vector3.Distance(points[0], points[1]);
+            for (int i = 0; i < count; i++)
+            {
+                float d = total * i / (count - 1);
+                while (seg < points.Length - 1 && d > segStart + segLength)
+                {
+                    segStart += segLength;
+                    seg++;
+                    segLength = Vector3.Distance(points[seg - 1], points[seg]);
+                }
+                result[i] = Vector3.Lerp(points[seg - 1], points[seg], segLength > 0f ? Mathf.Clamp01((d - segStart) / segLength) : 0f);
+            }
+            return result;
         }
 
         // A round tube through the points (in world space), written into the mesh in the holder's local space.
@@ -228,9 +253,12 @@ namespace PotatoFarmer
                     float angle = k * Mathf.PI * 2f / Sides;
                     Vector3 n = a * Mathf.Cos(angle) + b * Mathf.Sin(angle);
                     int v = i * (Sides + 1) + k;
-                    vertices[v] = holder.InverseTransformPoint(points[i] + n * RopeRadius);
+                    // Three strands: the surface swells over each strand and dips into the grooves between them.
+                    float lay = 3f * k / Sides - along / Twist;
+                    float swell = 0.84f + 0.16f * Mathf.Cos(lay * Mathf.PI * 2f);
+                    vertices[v] = holder.InverseTransformPoint(points[i] + n * (RopeRadius * swell));
                     normals[v] = holder.InverseTransformDirection(n);
-                    uvs[v] = new Vector2(k / (float)Sides, along * 6f);
+                    uvs[v] = new Vector2(k / (float)Sides, along / Twist);
                 }
             }
             int tri = 0;
@@ -252,7 +280,7 @@ namespace PotatoFarmer
         // The neck ring: a small torus of rope in the XY plane, around the Z axis.
         private static Mesh Ring(float radius)
         {
-            const int around = 16;
+            const int around = 64;
             var points = new Vector3[around + 1];
             for (int i = 0; i <= around; i++)
             {
@@ -273,16 +301,21 @@ namespace PotatoFarmer
             var template = Jotunn.Managers.PrefabManager.Cache.GetPrefab<Material>("ironchest");
             ropeLook = template ? new Material(template) : new Material(Shader.Find("Standard"));
             ropeLook.name = "potato_post_rope";
-            var texture = new Texture2D(8, 16, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat, name = "potato_rope_d" };
-            var light = new Color(0.62f, 0.5f, 0.33f);
+            // One turn of the lay: u goes round the rope, v along it. Each of the three strands is a light band with a dark
+            // groove on either side, following the same twist as the tube's shape, with fibres drawn as lighter flecks.
+            const int w = 12, h = 12;
+            var texture = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat, name = "potato_rope_d" };
+            var light = new Color(0.82f, 0.7f, 0.48f);
+            var mid = new Color(0.66f, 0.54f, 0.35f);
             var dark = new Color(0.36f, 0.27f, 0.17f);
-            for (int y = 0; y < 16; y++)
-                for (int x = 0; x < 8; x++)
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
                 {
-                    // Three strands twisting round: diagonal bands, each with a lit middle and a dark edge.
-                    int band = ((x * 2 + y) % 16 + 16) % 16;
-                    float shade = band < 2 ? 0f : band < 4 ? 0.4f : band < 9 ? 1f : 0.65f;
-                    texture.SetPixel(x, y, Color.Lerp(dark, light, shade));
+                    float lay = 3f * (x + 0.5f) / w - (y + 0.5f) / h;
+                    float f = lay - Mathf.Floor(lay);            // 0..1 across one strand
+                    var color = f < 0.12f || f > 0.9f ? dark : f < 0.3f || f > 0.75f ? mid : light;
+                    if (color == light && (x * 7 + y * 3) % 5 == 0) color = Color.Lerp(light, Color.white, 0.25f);
+                    texture.SetPixel(x, y, color);
                 }
             texture.Apply();
             ropeLook.SetTexture("_MainTex", texture);
