@@ -163,7 +163,7 @@ namespace PotatoFarmer
                 // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
                 Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
                 if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
-                rope.CollarRadius = Mathf.Clamp(animal.GetRadius() * 0.33f, 0.1f, 0.45f);
+                rope.CollarRadius = Mathf.Clamp(animal.GetRadius() * 0.2f, 0.06f, 0.3f);
                 rope.Collar = new GameObject("PotatoPostCollar");
                 rope.Collar.transform.SetParent(rope.Neck, false);
                 rope.Collar.transform.rotation = Quaternion.LookRotation(along.normalized, animal.transform.up);
