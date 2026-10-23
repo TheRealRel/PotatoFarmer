@@ -40,12 +40,16 @@ namespace PotatoFarmer
         public const string LickName = "$piece_potato_lick";
         private const string LickDescription = "$piece_potato_lick_description";
         private const string LickSection = "4 - Lick";
+        public const string PostPiece = "piece_potato_post";
+        public const string PostName = "$piece_potato_post";
+        private const string PostDescription = "$piece_potato_post_description";
+        private const string PostSection = "5 - Post";
 
         internal static ManualLogSource Log;
-        internal static ConfigEntry<int> TroughCapacity, RoostCapacity, RoostFlock, CaskBatches;
-        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix, LickEnabled;
-        internal static ConfigEntry<float> TroughReach, RoostReach, LickReach, LickFedTime;
-        private static Piece troughPiece, roostPiece, caskPiece, lickPiece;
+        internal static ConfigEntry<int> TroughCapacity, RoostCapacity, RoostFlock, CaskBatches, PostAnimals;
+        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix, LickEnabled, PostEnabled;
+        internal static ConfigEntry<float> TroughReach, RoostReach, LickReach, LickFedTime, PostRope;
+        private static Piece troughPiece, roostPiece, caskPiece, lickPiece, postPiece;
 
         private void Awake()
         {
@@ -87,6 +91,13 @@ namespace PotatoFarmer
             LickReach = Config.Bind(LickSection, "Reach", 10f,
                 new ConfigDescription("How far away (metres) the lick works. 10 covers a pen. Set by the server.", new AcceptableValueRange<float>(2f, 30f), serverSet));
             LickEnabled.SettingChanged += (_, __) => { if (lickPiece) lickPiece.m_enabled = LickEnabled.Value; };
+            PostEnabled = Config.Bind(PostSection, "Enabled", true,
+                new ConfigDescription("Show the hitching post on the hammer. Posts already built stay and keep working. Set by the server.", null, serverSet));
+            PostAnimals = Config.Bind(PostSection, "Animals per post", 4,
+                new ConfigDescription("How many tamed animals one post holds. Set by the server.", new AcceptableValueRange<int>(1, 10), serverSet));
+            PostRope = Config.Bind(PostSection, "Rope length", 4f,
+                new ConfigDescription("How far (metres) a tied animal can wander from beside the post. Set by the server.", new AcceptableValueRange<float>(2f, 10f), serverSet));
+            PostEnabled.SettingChanged += (_, __) => { if (postPiece) postPiece.m_enabled = PostEnabled.Value; };
             new Harmony(Id).PatchAll(typeof(Plugin).Assembly);
             PrefabManager.OnVanillaPrefabsAvailable += AddPieces;
         }
@@ -103,6 +114,8 @@ namespace PotatoFarmer
                 { CaskName.Substring(1), "Heiðrún's Cask" },
                 { CaskDescription.Substring(1), "A great mead cask blessed by Heiðrún, the goat whose udder runs with mead in Valhalla. Brews several mead bases at once, each like a fermenter of its own. Needs a roof." },
                 { LickName.Substring(1), "Auðhumla's Lick" },
+                { PostName.Substring(1), "Sleipnir's Post" },
+                { PostDescription.Substring(1), "A hitching post carved for Sleipnir, Odin's eight-legged horse. Bring a tamed animal that follows you and tie it here, and it stays put instead of wandering off." },
                 { LickDescription.Substring(1), "A block of salt on carved stone, for Auðhumla, the first cow, who licked the first god out of the salt ice. Tamed animals nearby stay fed longer between meals." },
             });
             try { AddTrough(); }
@@ -113,6 +126,8 @@ namespace PotatoFarmer
             catch (Exception e) { Log.LogError("Couldn't add the cask: " + e); }
             try { AddLick(); }
             catch (Exception e) { Log.LogError("Couldn't add the salt lick: " + e); }
+            try { AddPost(); }
+            catch (Exception e) { Log.LogError("Couldn't add the hitching post: " + e); }
         }
 
         private static void AddTrough()
@@ -272,6 +287,41 @@ namespace PotatoFarmer
             if (!GUIManager.IsHeadless()) lickPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Salt lick added to the hammer.");
+        }
+
+        private static void AddPost()
+        {
+            var piece = new CustomPiece(PostPiece, "piece_table", new PieceConfig
+            {
+                Name = PostName,
+                Description = PostDescription,
+                PieceTable = "Hammer",
+                Category = "Furniture",
+                CraftingStation = "forge",
+                Requirements = new[] { new RequirementConfig("RoundLog", 4, 0, true), new RequirementConfig("Bronze", 1, 0, true) },
+            });
+            if (!piece.PiecePrefab)
+            {
+                Log.LogWarning("The wooden table to build the hitching post from wasn't found; no hitching post this session.");
+                return;
+            }
+            var mesh = Assets.LoadMesh("post", Post.Size);
+            if (!mesh) return;
+            // Core wood with bronze rings, like the trough.
+            var look = new PieceLook("post", 1f, 0.6f);
+            var prefab = piece.PiecePrefab;
+            Rebuild(prefab, mesh, look.Material);
+            // The pole, and the rings sticking out at the top.
+            AddBox(prefab, "Pole", new Vector3(0f, 1f, 0f), new Vector3(0.32f, 2f, 0.32f), Post.Size);
+            AddBox(prefab, "Rings", new Vector3(0f, 1.5f, 0f), new Vector3(0.72f, 0.4f, 0.1f), Post.Size);
+            var wear = prefab.GetComponent<WearNTear>();
+            wear.m_materialType = WearNTear.MaterialType.Wood;
+            prefab.AddComponent<Post>();
+            postPiece = piece.Piece;
+            postPiece.m_enabled = PostEnabled.Value;
+            if (!GUIManager.IsHeadless()) postPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            PieceManager.Instance.AddPiece(piece);
+            Log.LogInfo("Hitching post added to the hammer.");
         }
 
         // A vanilla piece supplies the basics (building, wear, hit and break effects); its looks and colliders are
