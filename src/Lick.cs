@@ -55,15 +55,40 @@ namespace PotatoFarmer
             // Only when the game says hungry, for a tamed animal near a lick: hungry again only after the longer time.
             private static void Postfix(Tameable __instance, ref bool __result)
             {
-                if (!__result || all.Count == 0 || Plugin.LickFedTime.Value <= 1f) return;
-                var body = Body(__instance);
-                if (!body || !body.IsTamed() || !Near(body.transform.position)) return;
-                var zdo = View(__instance)?.GetZDO();
-                if (zdo == null || !ZNet.instance) return;
+                if (!__result) return;
+                double left = FedLeft(__instance);
+                if (left > 0) __result = false;
+            }
+
+            // Seconds this animal stays fed thanks to a lick: -1 if no lick is near, it was never fed, or it's past
+            // even the longer time.
+            internal static double FedLeft(Tameable tame)
+            {
+                if (all.Count == 0 || Plugin.LickFedTime.Value <= 1f) return -1;
+                var body = Body(tame);
+                if (!body || !body.IsTamed() || !Near(body.transform.position)) return -1;
+                var zdo = View(tame)?.GetZDO();
+                if (zdo == null || !ZNet.instance) return -1;
                 long last = zdo.GetLong(ZDOVars.s_tameLastFeeding, 0L);
-                if (last <= 0L) return; // Never fed: a lick doesn't stand in for food.
+                if (last <= 0L) return -1; // Never fed: a lick doesn't stand in for food.
                 double since = (ZNet.instance.GetTime() - new System.DateTime(last)).TotalSeconds;
-                __result = since > __instance.m_fedDuration * Plugin.LickFedTime.Value;
+                double left = tame.m_fedDuration * Plugin.LickFedTime.Value - since;
+                return left > 0 ? left : -1;
+            }
+        }
+
+        // A tamed animal near a lick says how long it stays fed, so the lick's effect can be seen.
+        [HarmonyPatch(typeof(Tameable), nameof(Tameable.GetHoverText))]
+        private static class FedHover
+        {
+            private static void Postfix(Tameable __instance, ref string __result)
+            {
+                if (string.IsNullOrEmpty(__result)) return;
+                double left = StayFed.FedLeft(__instance);
+                if (left <= 0) return;
+                var time = System.TimeSpan.FromSeconds(left);
+                string text = time.TotalHours >= 1 ? $"{(int)time.TotalHours}:{time.Minutes:00}:{time.Seconds:00}" : $"{time.Minutes}:{time.Seconds:00}";
+                __result += Localization.instance.Localize($"\nFed for {text} more ({Plugin.LickName})");
             }
         }
     }
