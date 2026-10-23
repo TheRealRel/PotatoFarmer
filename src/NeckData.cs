@@ -8,6 +8,12 @@
 //   bone      <index>  <name>  <parent index or -1>  <x y z>  <rotation quaternion x y z w>
 //   mesh      <index>  <renderer name>  enabled <bool>  readable <bool>  vertices <n>  bones <n>  rootbone <name>
 //   meshbone  <mesh index>  <mesh bone slot>  <bone index (from the bone records) or -1>
+//   bonematrix <bone index>  <16 floats, column-major>   the bone's full transform (with scale) in creature space
+//   matrix    <mesh index>  <16 floats>   the renderer's full transform (with scale) in creature space
+//   bind      <mesh index>  <slot>  <16 floats>   the mesh's bind pose for that bone slot (when available)
+//   raw       <mesh index>  <0 or 1 = BakeMesh useScale>  <x y z>   the posed mesh exactly as BakeMesh returns it
+//   local     <mesh index>  <x y z>   the mesh's rest-pose vertices (readable meshes only)
+//   tri       <mesh index>  <a b c>   triangles (vertex numbers, the same for raw, local and v)
 //   bake      <mesh index>  <which way of reading the posed mesh matched the renderer's bounds>  <mismatch score>
 //   bounds    <mesh index>  <renderer world bounds centre x y z>  <size x y z>  (creature space, for checking)
 //   v         <mesh index>  <x y z>  [<bone slot> <weight> for the two strongest bones, when the mesh is readable]
@@ -28,6 +34,12 @@ namespace PotatoFarmer
 
         private static string F(float v) => v.ToString("0.#####", CultureInfo.InvariantCulture);
         private static string V(Vector3 v) => F(v.x) + " " + F(v.y) + " " + F(v.z);
+        private static string M(Matrix4x4 m)
+        {
+            var b = new StringBuilder();
+            for (int i = 0; i < 16; i++) b.Append(i == 0 ? "" : " ").Append(F(m[i]));
+            return b.ToString();
+        }
 
         // The posed mesh in world space. Creatures import with different scales on the renderer (Boar 1, others 0.01 or
         // less), and how BakeMesh treats that scale differs, so each way is tried and the one whose box matches the
@@ -83,6 +95,7 @@ namespace PotatoFarmer
                     var q = rootRotation * b.rotation;
                     text.Append($"bone\t{i}\t{b.name}\t{parent}\t{V(space.MultiplyPoint3x4(b.position))}\t{F(q.x)} {F(q.y)} {F(q.z)} {F(q.w)}\n");
                 }
+                for (int i = 0; i < bones.Count; i++) text.Append($"bonematrix\t{i}\t{M(space * bones[i].localToWorldMatrix)}\n");
 
                 var baked = new Mesh();
                 var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
@@ -100,6 +113,28 @@ namespace PotatoFarmer
                     BoneWeight[] weights = null;
                     if (readable)
                         try { weights = shared.boneWeights; } catch { weights = null; }
+                    text.Append($"matrix\t{m}\t{M(space * skin.transform.localToWorldMatrix)}\n");
+                    try
+                    {
+                        var binds = shared.bindposes;
+                        for (int s = 0; s < binds.Length; s++) text.Append($"bind\t{m}\t{s}\t{M(binds[s])}\n");
+                    }
+                    catch { }
+                    if (readable)
+                        try { foreach (var lv in shared.vertices) text.Append($"local\t{m}\t{V(lv)}\n"); } catch { }
+                    foreach (bool useScale in new[] { false, true })
+                        try
+                        {
+                            skin.BakeMesh(baked, useScale);
+                            foreach (var rv in baked.vertices) text.Append($"raw\t{m}\t{(useScale ? 1 : 0)}\t{V(rv)}\n");
+                        }
+                        catch { }
+                    try
+                    {
+                        var tris = baked.triangles;
+                        for (int t = 0; t + 2 < tris.Length; t += 3) text.Append($"tri\t{m}\t{tris[t]} {tris[t + 1]} {tris[t + 2]}\n");
+                    }
+                    catch (System.Exception e) { text.Append($"note\tmesh {m} triangles unavailable: {e.GetBaseException().Message}\n"); }
                     var world = Surface(skin, baked, out string how, out float score);
                     if (world == null)
                     {
