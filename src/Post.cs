@@ -206,11 +206,19 @@ namespace PotatoFarmer
             var rope = new Rope { Mesh = new Mesh { name = "potato_post_rope" } };
             rope.Mesh.MarkDynamic();
             rope.Lead = Holder("PotatoPostRope", rope.Mesh);
-            rope.Neck = FindNeck(animal);
-            if (!rope.Neck) return rope;
             var head = Head(animal);
-            // The ring lies across the neck: square to the line from the neck to the head (or the body's forward).
+            rope.Neck = FindNeck(animal.transform, head, out string how);
+            if (!rope.Neck) return rope;
+            Vector3 center = rope.Neck.position;
             Vector3 along = head && head != rope.Neck ? head.position - rope.Neck.position : animal.transform.forward;
+            if (head && rope.Neck == head.parent && how.StartsWith("the bone the head"))
+            {
+                // No neck bone (the hen): the head hangs straight off the spine, so the ring goes on the head bone,
+                // part way back towards the spine, where the neck is.
+                center = Vector3.Lerp(head.parent.position, head.position, 0.55f);
+                rope.Neck = head;
+            }
+            // The ring lies across the neck: square to the line towards the head (or the body's forward).
             if (along.sqrMagnitude < 0.0001f) along = animal.transform.forward;
             along.Normalize();
             Vector3 a = Vector3.Cross(along, animal.transform.up);
@@ -218,7 +226,6 @@ namespace PotatoFarmer
             a.Normalize();
             Vector3 c = Vector3.Cross(along, a).normalized;
             float guess = Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f);
-            Vector3 center = rope.Neck.position;
             rope.Radii = Measure(animal, ref center, a, c, along, guess);
             rope.LocalCenter = rope.Neck.InverseTransformPoint(center);
             rope.LocalA = rope.Neck.InverseTransformDirection(a);
@@ -244,7 +251,7 @@ namespace PotatoFarmer
         private static float[] Measure(Character animal, ref Vector3 center, Vector3 a, Vector3 c, Vector3 along, float guess)
         {
             var radii = Enumerable.Repeat(guess, Bins).ToArray();
-            float slab = Mathf.Max(0.03f, guess * 0.35f), reach = guess * 2.4f;
+            float slab = Mathf.Max(0.02f, guess * 0.22f), reach = guess * 2.4f;
             var slice = new List<Vector2>();
             var baked = new Mesh();
             try
@@ -266,12 +273,21 @@ namespace PotatoFarmer
             finally { Object.Destroy(baked); }
             if (slice.Count < 24) return radii;
             var middle = new Vector2(slice.Average(p => p.x), slice.Average(p => p.y));
-            var outer = new float[Bins];
+            // At each angle, a typical outer surface point (not the furthest, which is a bristle or tuft tip).
+            var perBin = new List<float>[Bins];
+            for (int i = 0; i < Bins; i++) perBin[i] = new List<float>();
             foreach (var p in slice)
             {
                 var d = p - middle;
                 int bin = ((int)Mathf.Floor((Mathf.Atan2(d.y, d.x) / (Mathf.PI * 2f) + 1f) * Bins)) % Bins;
-                outer[bin] = Mathf.Max(outer[bin], d.magnitude);
+                perBin[bin].Add(d.magnitude);
+            }
+            var outer = new float[Bins];
+            for (int i = 0; i < Bins; i++)
+            {
+                if (perBin[i].Count == 0) continue;
+                perBin[i].Sort();
+                outer[i] = perBin[i][Mathf.Clamp(Mathf.RoundToInt((perBin[i].Count - 1) * 0.7f), 0, perBin[i].Count - 1)];
             }
             int filled = outer.Count(r => r > 0f);
             if (filled < Bins / 2) return radii;
@@ -283,8 +299,18 @@ namespace PotatoFarmer
                         float l = outer[(i + Bins - 1) % Bins], r = outer[(i + 1) % Bins];
                         if (l > 0f || r > 0f) outer[i] = l > 0f && r > 0f ? (l + r) * 0.5f : Mathf.Max(l, r);
                     }
-            for (int i = 0; i < Bins; i++)
-                radii[i] = (outer[(i + Bins - 1) % Bins] + outer[i] * 2f + outer[(i + 1) % Bins]) / 4f + RopeRadius * 0.6f;
+            // Spikes well off the neck's usual size are trimmed, then the outline is smoothed twice.
+            var sorted = outer.Where(r => r > 0f).OrderBy(r => r).ToList();
+            float median = sorted[sorted.Count / 2];
+            for (int i = 0; i < Bins; i++) outer[i] = Mathf.Clamp(outer[i], median * 0.75f, median * 1.25f);
+            for (int pass = 0; pass < 2; pass++)
+            {
+                var smooth = new float[Bins];
+                for (int i = 0; i < Bins; i++)
+                    smooth[i] = (outer[(i + Bins - 2) % Bins] + outer[(i + Bins - 1) % Bins] * 2f + outer[i] * 3f + outer[(i + 1) % Bins] * 2f + outer[(i + 2) % Bins]) / 9f;
+                outer = smooth;
+            }
+            for (int i = 0; i < Bins; i++) radii[i] = outer[i] + RopeRadius * 0.6f;
             center += a * middle.x + c * middle.y;
             return radii;
         }
