@@ -1,6 +1,6 @@
 Farming and animal pieces for Valheim, each with its own model, textured to sit right next to the game's own pieces. Five so far: a feeding trough, a nesting box, a mead cask, a salt lick and a hitching post. The server can switch any of them off, and more will join over time.
 
-![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-3.png)
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-3.png)
 
 **Gullinbursti's Trough** is a feeding trough your animals eat from, named for the god Freyr's golden-bristled boar. Dark oak, hammered bronze bands and a carved boar head on each end. Fill it with food and walk away: hungry boars, wolves, lox and any other tameable animal within 25 m come over and eat from it, one bite at a time. The game treats every bite as a normal meal, so taming, breeding and keeping tamed animals fed all count, and mods that change those keep working.
 
@@ -12,7 +12,7 @@ Farming and animal pieces for Valheim, each with its own model, textured to sit 
 
 Which food counts is the game's own list for each animal, so modded animals and their foods work too. It isn't a chest, so crafting-from-containers and quick-stack mods leave its food alone, and auto-pickup won't grab a bite waiting in the bowl. With LetMeTameYou, animals that can't be tamed yet don't eat from it, the same as with food on the ground.
 
-![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-3.png)
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-roost-3.png)
 
 **Gullinkambi's Roost** gathers your hens' eggs, named for the golden-combed rooster that wakes the warriors of Valhalla. Fine wood, black metal and a carved rooster head on each end. Hens stop laying once there are 10 hens and eggs within 10 m, so eggs left lying around shut a coop down; the roost gathers the eggs laid within 10 m so your hens keep laying, and a star hen's eggs stay star eggs.
 
@@ -24,7 +24,7 @@ Which food counts is the game's own list for each animal, so modded animals and 
 
 Eggs already warming by a fire on the ground are left alone. It gathers any egg that hatches, so eggs from other animals (for example with LetMeTameYou) work too.
 
-![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-3.png)
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-cask-3.png)
 
 **Heiðrún's Cask** is a great mead cask, blessed by Heiðrún, the goat whose udder runs with mead in Valhalla. A great barrel of fine wood with black metal bands, a goat carved into each end and a cork to tap it from, on a carved stand. It brews several mead bases at once, 4 by default, each exactly like a fermenter of its own.
 
@@ -36,7 +36,7 @@ Eggs already warming by a fire on the ground are left alone. It gathers any egg 
 
 Brewing takes as long as the game's fermenter and gives the same amount. With PotatoTweaks, the cask follows its fermenter speed and output settings too. One cask brews one kind of mead base at a time until it's emptied, unless the server turns on Mix mead bases.
 
-![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-3.png)
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-3.png)
 
 **Auðhumla's Lick** is a salt lick for your tamed animals, named for the first cow, who licked the first god out of the salt ice. A block of salt on carved stone. Tamed animals within 10 m of it stay fed twice as long between meals, so a trough's food goes further and they stay ready to breed.
 
@@ -45,7 +45,7 @@ Brewing takes as long as the game's fermenter and gives the same amount. With Po
 
 Nothing is stored in the lick. It stretches the game's own hunger timer while an animal is near it, so mods that change how long animals stay fed (LetMeTameYou, for example) still count, and the lick doubles whatever they set.
 
-![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-3.png)
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-3.png)
 
 **Sleipnir's Post** is a hitching post, carved for Sleipnir, Odin's eight-legged horse. Bring a tamed animal that's following you, use the post, and it's tied: it stays within a rope's length of the post instead of wandering off, with a rope from the post's iron ring to a loop around its neck. The loop is fitted to each animal's own neck, modded animals included.
 
