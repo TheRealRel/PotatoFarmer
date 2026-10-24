@@ -2,7 +2,7 @@
 
 ## 1.3.0
 - New: Auðhumla's Lick, a salt lick. Tamed animals within 10 m stay fed twice as long between meals (Fed time and Reach settings), and it works with mods that change hunger. Built at a forge from 10 Stone, 4 Flint and 2 Tin.
-- New: Sleipnir's Post, a hitching post for 4 animals on 4 m ropes (Animals per post and Rope length settings). Tie a tamed animal that's following you; Shift + E unties them all and they follow you. The rope's loop is fitted to each animal's own neck, modded animals included. Built at a forge from 4 Core Wood and 1 Bronze.
+- New: Sleipnir's Post, a hitching post for 4 animals on 4 m ropes (Animals per post and Rope length settings). Tie a tamed animal that's following you; it fights only what comes within its rope's reach. Shift + E unties them all and they follow you. The rope's loop is fitted to each animal's own neck, modded animals included. Built at a forge from 4 Core Wood and 1 Bronze.
 - The mod page shows four icons for each piece, drawn from its model.
 
 ## 1.2.0
