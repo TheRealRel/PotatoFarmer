@@ -471,25 +471,67 @@ namespace PotatoFarmer
             else if (ai) ai.SetPatrolPoint(); // The post broke: stay put where it stands.
         }
 
-        // While tied, the animal wanders only a rope's length from the post (the game allows up to twice its range
-        // before it walks back).
+        // A tied animal's patrol point (beside the post), or false if it isn't tied.
+        private static readonly AccessTools.FieldRef<BaseAI, ZNetView> AiView = AccessTools.FieldRefAccess<BaseAI, ZNetView>("m_nview");
+        private static bool TiedPoint(BaseAI ai, out Vector3 point)
+        {
+            point = Vector3.zero;
+            var zdo = AiView(ai)?.GetZDO();
+            if (!IsTied(zdo)) return false;
+            point = zdo.GetVec3(ZDOVars.s_patrolPoint, ai.transform.position);
+            return true;
+        }
+
+        // While tied, the animal wanders only within its rope (the game allows up to twice the range before it walks
+        // back), and once it's past the rope's length it walks straight back instead of drifting back step by step.
         [HarmonyPatch(typeof(BaseAI), "RandomMovement")]
         private static class ShortRope
         {
-            private static readonly AccessTools.FieldRef<BaseAI, ZNetView> View = AccessTools.FieldRefAccess<BaseAI, ZNetView>("m_nview");
+            private static readonly System.Func<BaseAI, float, Vector3, float, bool, bool> MoveTo =
+                AccessTools.MethodDelegate<System.Func<BaseAI, float, Vector3, float, bool, bool>>(AccessTools.Method(typeof(BaseAI), "MoveTo"));
 
-            private static void Prefix(BaseAI __instance, out float __state)
+            private static bool Prefix(BaseAI __instance, float dt, Vector3 centerPoint, out float __state)
             {
                 __state = -1f;
-                var zdo = View(__instance)?.GetZDO();
-                if (!IsTied(zdo)) return;
+                if (!TiedPoint(__instance, out var post)) return true;
+                if (Utils.DistanceXZ(centerPoint, post) < 0.5f && Utils.DistanceXZ(__instance.transform.position, post) > Plugin.PostRope.Value)
+                {
+                    MoveTo(__instance, dt, post, Plugin.PostRope.Value * 0.25f, false);
+                    return false;
+                }
                 __state = __instance.m_randomMoveRange;
                 __instance.m_randomMoveRange = Mathf.Min(__instance.m_randomMoveRange, Plugin.PostRope.Value * 0.5f);
+                return true;
             }
 
             private static void Finalizer(BaseAI __instance, float __state)
             {
                 if (__state >= 0f) __instance.m_randomMoveRange = __state;
+            }
+        }
+
+        // The rope holds in a fight too: a tied animal only goes after what comes within its rope's reach (plus a
+        // swing), and drops anything further away, then walks back.
+        [HarmonyPatch(typeof(MonsterAI), "UpdateTarget")]
+        private static class RopeHoldsInFights
+        {
+            private const float Swing = 3f;
+            private static readonly AccessTools.FieldRef<MonsterAI, Character> Target = AccessTools.FieldRefAccess<MonsterAI, Character>("m_targetCreature");
+            private static readonly AccessTools.FieldRef<MonsterAI, StaticTarget> Static = AccessTools.FieldRefAccess<MonsterAI, StaticTarget>("m_targetStatic");
+
+            private static void Postfix(MonsterAI __instance, ref bool canHearTarget, ref bool canSeeTarget)
+            {
+                if (!TiedPoint(__instance, out var post)) return;
+                float reach = Plugin.PostRope.Value + Swing;
+                var target = Target(__instance);
+                if (target && Utils.DistanceXZ(target.transform.position, post) > reach)
+                {
+                    Target(__instance) = null;
+                    canHearTarget = false;
+                    canSeeTarget = false;
+                }
+                var still = Static(__instance);
+                if (still && Utils.DistanceXZ(still.transform.position, post) > reach) Static(__instance) = null;
             }
         }
 
