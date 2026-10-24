@@ -1,13 +1,14 @@
 # PotatoFarmer
 
-Farming and animal pieces for Valheim with their own models. Gullinbursti's Trough, a bronze and wood feeding trough that animals eat from, and Gullinkambi's Roost, a black metal nesting box that gathers and hatches eggs. Player docs: [package/README.md](package/README.md).
+Farming and animal pieces for Valheim with their own models: Gullinbursti's Trough (a feeding trough animals eat from), Gullinkambi's Roost (gathers and hatches eggs), Heiðrún's Cask (a many-batch mead cask), Auðhumla's Lick (tamed animals stay fed longer) and Sleipnir's Post (a hitching post). Player docs: [package/README.md](package/README.md).
 
 ## Layout
-- `src/` – the plugin (BepInEx 5 + Jötunn). `Assets.cs` loads models and textures for any piece; `Trough.cs`, `Feeding.cs` and `Stock.cs` are the trough; `Roost.cs` is the roost (it uses `Stock.cs` too).
+- `src/` – the plugin (BepInEx 5 + Jötunn). `Assets.cs` loads models and textures for any piece; `Trough.cs`, `Feeding.cs` and `Stock.cs` are the trough; `Roost.cs` is the roost (it uses `Stock.cs` too); `Cask.cs` the cask; `Lick.cs` the salt lick; `Post.cs` the hitching post, with `NeckRing.cs` fitting its rope loop to any creature's neck (see [docs/neck-ring.md](docs/neck-ring.md)) and `NeckData.cs` a switched-off tool that dumps a creature's skeleton and posed body to a text file.
 - `assets/` – each piece's model and textures (`<name>.mesh`, `<name>_d.png`, `<name>_n.png`, `<name>_m.png`), loaded at runtime (no Unity asset bundle).
 - `tools/convert.py` – turns a `.glb` (e.g. from Meshy) into `assets/`: `python3 -I tools/convert.py model.glb assets <name> [length_m] [pixels_per_m]`. Mirrors glTF into Unity's axes, lays the long side on X, stands it on y = 0, sizes and shrinks the textures (the Potato look, below), and repacks the metal/roughness and normal maps for Valheim's `Custom/Piece` shader (metal in RGB, smoothness in alpha; normal X in alpha).
 - `tools/bake.py` – for high-poly AI models (millions of triangles): `python3 -I tools/bake.py full.glb game.glb [triangles=20000] [texture_px=1024]` decimates, lays out fresh UVs (xatlas) and bakes the color and metal from the full model; run `convert.py` on the result. Needs pymeshlab, xatlas, scipy (and libopengl0 on Linux). `decimate.py` is the older, simpler version.
 - `tools/even_pixels.py` – evens out a converted model's pixel size when Meshy gave some UV islands far more texture than others: convert at a larger size, then `python3 -I tools/even_pixels.py assets <name> <px_per_m>` merges each island's texels into blocks so every part lands near the same density.
+- `tools/icon_render.html` + `icon_render.js` (three.js in headless Chromium via Playwright) render a piece from `assets/` at chosen angles; `tools/page_icons.py` turns the renders into the mod page's pixel icons (40 px art, posterised, dark outline, shown at 80 px).
 - `package/` – Thunderstore files. The build copies the DLL and `assets/` into `package/plugins/`.
 
 ## Build

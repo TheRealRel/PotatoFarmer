@@ -14,7 +14,7 @@
 //   raw       <mesh index>  <0 or 1 = BakeMesh useScale>  <x y z>   the posed mesh exactly as BakeMesh returns it
 //   local     <mesh index>  <x y z>   the mesh's rest-pose vertices (readable meshes only)
 //   tri       <mesh index>  <a b c>   triangles (vertex numbers, the same for raw, local and v)
-//   bake      <mesh index>  <which way of reading the posed mesh matched the renderer's bounds>  <mismatch score>
+//   bake      <mesh index>  how the v lines were read (always "scaled bake, full transform")  0
 //   bounds    <mesh index>  <renderer world bounds centre x y z>  <size x y z>  (creature space, for checking)
 //   v         <mesh index>  <x y z>  [<bone slot> <weight> for the two strongest bones, when the mesh is readable]
 using System.Collections.Generic;
@@ -41,34 +41,19 @@ namespace PotatoFarmer
             return b.ToString();
         }
 
-        // The posed mesh in world space. Creatures import with different scales on the renderer (Boar 1, others 0.01 or
-        // less), and how BakeMesh treats that scale differs, so each way is tried and the one whose box matches the
-        // renderer's own world bounds is kept. Works on meshes that aren't readable too.
+        // The posed mesh in world space: BakeMesh(mesh, true) gives the renderer's own space without its scale, so it
+        // goes through the renderer's full transform (see NeckRing.cs). Works on meshes that aren't readable too.
         internal static Vector3[] Surface(SkinnedMeshRenderer skin, Mesh baked, out string how, out float score)
         {
-            how = "-"; score = float.MaxValue;
-            Vector3[] best = null;
-            var target = skin.bounds;
-            var full = skin.transform.localToWorldMatrix;
-            var noScale = Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
-            foreach (bool useScale in new[] { false, true })
-            {
-                Vector3[] local;
-                try { skin.BakeMesh(baked, useScale); local = baked.vertices; }
-                catch { continue; }
-                if (local == null || local.Length == 0) continue;
-                foreach (bool scaled in new[] { true, false })
-                {
-                    var place = scaled ? full : noScale;
-                    var points = new Vector3[local.Length];
-                    var box = new Bounds(place.MultiplyPoint3x4(local[0]), Vector3.zero);
-                    for (int i = 0; i < local.Length; i++) box.Encapsulate(points[i] = place.MultiplyPoint3x4(local[i]));
-                    float size = Mathf.Max(target.size.magnitude, 0.001f);
-                    float s = Mathf.Abs(Mathf.Log(Mathf.Max(box.size.magnitude, 0.00001f) / size)) + (box.center - target.center).magnitude / size;
-                    if (s < score) { score = s; best = points; how = (useScale ? "scaled bake" : "unscaled bake") + (scaled ? ", full transform" : ", no scale"); }
-                }
-            }
-            return best;
+            how = "scaled bake, full transform";
+            score = 0f;
+            try { skin.BakeMesh(baked, true); }
+            catch { return null; }
+            var place = skin.transform.localToWorldMatrix;
+            var local = baked.vertices;
+            var points = new Vector3[local.Length];
+            for (int i = 0; i < local.Length; i++) points[i] = place.MultiplyPoint3x4(local[i]);
+            return points;
         }
 
         internal static void Save(Character animal, Transform head, Transform neck)

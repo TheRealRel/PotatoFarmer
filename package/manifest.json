@@ -1,8 +1,8 @@
 {
   "name": "PotatoFarmer",
-  "version_number": "1.2.0",
+  "version_number": "1.3.0",
   "website_url": "https://github.com/TheRealRel/PotatoFarmer",
-  "description": "Farming and animal pieces for Valheim: Gullinbursti's Trough, a feeding trough your animals eat from; Gullinkambi's Roost, a nesting box that gathers eggs and hatches chicks; and Heiðrún's Cask, a mead cask that brews several batches at once.",
+  "description": "Farming and animal pieces for Valheim, each with its own model: a feeding trough, an egg-gathering roost, a mead cask, a salt lick and a hitching post.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351",
     "ValheimModding-Jotunn-2.30.2"

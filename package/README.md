@@ -1,4 +1,4 @@
-Farming and animal pieces for Valheim, each with its own model, textured to sit right next to the game's own pieces. Three so far: a feeding trough, a nesting box and a mead cask. The server can switch any of them off, and more will join over time.
+Farming and animal pieces for Valheim, each with its own model, textured to sit right next to the game's own pieces. Five so far: a feeding trough, a nesting box, a mead cask, a salt lick and a hitching post. The server can switch any of them off, and more will join over time.
 
 ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-3.png)
 
@@ -36,6 +36,25 @@ Eggs already warming by a fire on the ground are left alone. It gathers any egg 
 
 Brewing takes as long as the game's fermenter and gives the same amount. With PotatoTweaks, the cask follows its fermenter speed and output settings too. One cask brews one kind of mead base at a time until it's emptied, unless the server turns on Mix mead bases.
 
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-lick-3.png)
+
+**Auðhumla's Lick** is a salt lick for your tamed animals, named for the first cow, who licked the first god out of the salt ice. A block of salt on carved stone. Tamed animals within 10 m of it stay fed twice as long between meals, so a trough's food goes further and they stay ready to breed.
+
+- Build it with the hammer under Furniture: 10 Stone, 4 Flint and 2 Tin, at a forge.
+- Look at a tamed animal near a lick to see how long it stays fed.
+
+Nothing is stored in the lick. It stretches the game's own hunger timer while an animal is near it, so mods that change how long animals stay fed (LetMeTameYou, for example) still count, and the lick doubles whatever they set.
+
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-post-3.png)
+
+**Sleipnir's Post** is a hitching post, carved for Sleipnir, Odin's eight-legged horse. Bring a tamed animal that's following you, use the post, and it's tied: it stays within a rope's length of the post instead of wandering off, with a rope from the post's iron ring to a loop around its neck. The loop is fitted to each animal's own neck, modded animals included.
+
+- Build it with the hammer under Furniture: 4 Core Wood and 1 Bronze, at a forge.
+- One post holds 4 animals, each on a 4 m rope.
+- Shift + E unties everything on the post and they follow you. Telling a tied animal to follow you unties just that one, and if the post is destroyed, its animals stay where they are.
+
+Ties are saved with the animal, so they last through restarts and every player sees the same ropes.
+
 Everyone needs the mod, the server included, because the pieces are part of your world. Dedicated servers load it too. It's part of the PotatoServer pack for the Potato Server.
 
 ## Settings
@@ -55,6 +74,12 @@ In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager. Ev
 | Cask: Enabled | On | Show the cask on the hammer. Casks already built stay and keep working. Server. |
 | Cask: Batches | 4 | How many mead bases one cask brews at once (1-20). Server. |
 | Cask: Mix mead bases | Off | Let one cask brew different mead bases at once. Server. |
+| Lick: Enabled | On | Show the salt lick on the hammer. Licks already built stay and keep working. Server. |
+| Lick: Fed time | 2 | Tamed animals near a lick stay fed this many times as long between meals (1-5). 1 = no change. Server. |
+| Lick: Reach | 10 m | How far away the lick works (2-30 m). Server. |
+| Post: Enabled | On | Show the hitching post on the hammer. Posts already built stay and keep working. Server. |
+| Post: Animals per post | 4 | How many tamed animals one post holds (1-10). Server. |
+| Post: Rope length | 4 m | How far a tied animal can wander from beside the post (2-10 m). Server. |
 
 Bug reports go to [GitHub Issues](https://github.com/TheRealRel/PotatoFarmer/issues), where the source lives too. Questions are welcome on Discord: [relanebeis](https://discord.com/users/373574370267889674).
 
