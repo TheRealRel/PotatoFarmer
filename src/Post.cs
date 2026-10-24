@@ -177,30 +177,6 @@ namespace PotatoFarmer
             return head;
         }
 
-        // Once a session, after every mod has added its creatures: where each tameable or breedable creature's neck ring
-        // would sit, in the log, so creatures without a proper neck show up.
-        [HarmonyPatch(typeof(Player), nameof(Player.OnSpawned))]
-        private static class NeckCheck
-        {
-            private static bool done;
-
-            private static void Postfix(Player __instance)
-            {
-                if (done || __instance != Player.m_localPlayer || !ZNetScene.instance) return;
-                done = true;
-                var lines = new List<string>();
-                foreach (var prefab in ZNetScene.instance.m_prefabs)
-                {
-                    var character = prefab ? prefab.GetComponent<Character>() : null;
-                    if (!character || character.IsPlayer() || (!prefab.GetComponent<Tameable>() && !prefab.GetComponent<Procreation>())) continue;
-                    var neck = FindNeck(prefab.transform, HeadBone(character) ?? NamedHead(prefab.transform), out string how);
-                    lines.Add($"{prefab.name}: {(neck ? neck.name : "-")} ({how})");
-                }
-                lines.Sort();
-                Plugin.Log.LogInfo($"Hitching post neck check, {lines.Count} tameable creatures:\n  " + string.Join("\n  ", lines.ToArray()));
-            }
-        }
-
         private Rope MakeRope(Character animal)
         {
             var rope = new Rope { Mesh = new Mesh { name = "potato_post_rope" } };
@@ -233,7 +209,7 @@ namespace PotatoFarmer
                 rope.Radii = fit.Radii;
                 // The ring rides on whichever bone it sits nearer, so it stays put when the head turns.
                 rope.Neck = fit.At < 0.5f ? from : to;
-                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} {where} ring {fit.Round + 2f * Mathf.PI * RopeRadius * 0.8f:0.00} m round, " +
+                Plugin.Log.LogDebug($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} {where} ring {fit.Round + 2f * Mathf.PI * RopeRadius * 0.8f:0.00} m round, " +
                     $"{fit.At:0.00} of the way from {from.name} to {to.name}.");
             }
             else
@@ -248,7 +224,7 @@ namespace PotatoFarmer
                 a.Normalize();
                 c = Vector3.Cross(along, a).normalized;
                 rope.Radii = Enumerable.Repeat(Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f), Bins).ToArray();
-                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} no outline found round the {where}, plain ring.");
+                Plugin.Log.LogDebug($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} no outline found round the {where}, plain ring.");
             }
             rope.LocalCenter = rope.Neck.InverseTransformPoint(center);
             rope.LocalA = rope.Neck.InverseTransformDirection(a);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+- New: Auðhumla's Lick, a salt lick. Tamed animals within 10 m stay fed twice as long between meals (Fed time and Reach settings), and it works with mods that change hunger. Built at a forge from 10 Stone, 4 Flint and 2 Tin.
+- New: Sleipnir's Post, a hitching post for 4 animals on 4 m ropes (Animals per post and Rope length settings). Tie a tamed animal that's following you; Shift + E unties them all and they follow you. The rope's loop is fitted to each animal's own neck, modded animals included. Built at a forge from 4 Core Wood and 1 Bronze.
+- The mod page shows three icons for each piece, drawn from its model.
+
 ## 1.2.0
 - New: Heiðrún's Cask, a great mead cask that brews several mead bases at once, 4 by default (Batches setting), each like a fermenter of its own. Fine wood and black metal with a goat carved into each end, built at a forge from 30 Fine Wood, 6 Black Metal, 4 Tar and 20 Iron Nails. It follows the game's fermenter times and amounts, and PotatoTweaks' fermenter settings when that's installed. One kind of mead base at a time unless the server turns on Mix mead bases.
 - The trough and the roost are now built at a forge instead of a workbench.
