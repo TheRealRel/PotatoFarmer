@@ -27,7 +27,10 @@ namespace PotatoFarmer
         }
 
         private const float Weld = 0.0005f;
-        private const float Back = 0.015f;  // metres further towards the body than the narrowest place
+        private const float Back = 0.015f;
+        private const float NeckSize = 1.2f;     // how much bigger than the head end's outline a neck ring may be
+        private const float ShortOfHead = 0.85f; // how far towards the head bone the ring may go
+        private const int SmoothPasses = 8;  // metres further towards the body than the narrowest place
 
         // The body in world space: every visible skinned mesh (only the most detailed level of a LOD group), with
         // vertices that share a place merged, so the outlines join up across UV seams.
@@ -276,25 +279,30 @@ namespace PotatoFarmer
                 }
             }
 
-            // The smallest outline between the bones; on near-ties, the one nearer the body.
+            // Every outline from the neck bone to the head bone.
             var found = new List<KeyValuePair<float, List<Vector2>>>();
             var at = new List<float>();
-            float smallest = float.MaxValue;
-            // Not right at the head bone: there the cut goes through the skull and jaw (the bear's ring bowed out).
-            for (int i = 0; i <= 17; i++)
+            for (int i = 0; i <= 20; i++)
             {
                 float t = i / 20f;
                 var ring = Ring(points, triangles, Vector3.Lerp(from, to, t), a, u, v, reach);
                 if (ring == null) continue;
-                float round = Length(ring);
-                found.Add(new KeyValuePair<float, List<Vector2>>(round, ring));
+                found.Add(new KeyValuePair<float, List<Vector2>>(Length(ring), ring));
                 at.Add(t);
-                smallest = Mathf.Min(smallest, round);
             }
             if (found.Count == 0) return null;
-            int pick = 0;
+            // The outline nearest the head sets the neck's size: anything much bigger is the shoulders (a bear with
+            // its head down), not the neck.
+            float limit = found[found.Count - 1].Key * NeckSize;
+            // The smallest of the rest, short of the head bone itself (there the cut goes through the skull and jaw),
+            // and on near-ties the one nearer the body. If only the head end qualifies, the one nearest the body.
+            float smallest = float.MaxValue;
             for (int i = 0; i < found.Count; i++)
-                if (found[i].Key <= smallest * 1.02f) { pick = i; break; }
+                if (at[i] <= ShortOfHead && found[i].Key <= limit) smallest = Mathf.Min(smallest, found[i].Key);
+            int pick = -1;
+            for (int i = 0; i < found.Count && pick < 0; i++)
+                if (smallest < float.MaxValue ? at[i] <= ShortOfHead && found[i].Key <= smallest * 1.02f : found[i].Key <= limit) pick = i;
+            if (pick < 0) pick = found.Count - 1;
             // Then a touch further back towards the body, so it sits on the neck rather than up against the head.
             float back = Mathf.Max(0f, at[pick] - Back / length);
             var hull = back < at[pick] ? Ring(points, triangles, Vector3.Lerp(from, to, back), a, u, v, reach) : null;
@@ -329,6 +337,17 @@ namespace PotatoFarmer
                 }
                 fit.Radii[b] = r + ropeRadius;
             }
+            // Round off the corners of a low-poly body (the lox): the rope eases round them and sinks a little into
+            // the fur there rather than running in straight lines between them.
+            var raw = (float[])fit.Radii.Clone();
+            var smooth = (float[])fit.Radii.Clone();
+            for (int pass = 0; pass < SmoothPasses; pass++)
+            {
+                var next = new float[bins];
+                for (int b = 0; b < bins; b++) next[b] = (smooth[(b + bins - 1) % bins] + smooth[b] * 2f + smooth[(b + 1) % bins]) * 0.25f;
+                smooth = next;
+            }
+            for (int b = 0; b < bins; b++) fit.Radii[b] = Mathf.Max(smooth[b], raw[b] * 0.94f);
             return fit;
         }
     }
