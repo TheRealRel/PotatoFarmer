@@ -29,7 +29,7 @@ namespace PotatoFarmer
 {
     internal static class NeckData
     {
-        internal const bool Capture = true;
+        internal const bool Capture = false;
         private static readonly HashSet<string> saved = new HashSet<string>();
 
         private static string F(float v) => v.ToString("0.#####", CultureInfo.InvariantCulture);
