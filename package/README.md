@@ -40,6 +40,8 @@ Brewing takes as long as the game's fermenter and gives the same amount. With Po
 
 **Auðhumla's Lick** is a salt lick for your tamed animals, named for the first cow, who licked the first god out of the salt ice. A block of salt on carved stone. Tamed animals within 10 m of it stay fed twice as long between meals, so a trough's food goes further and they stay ready to breed.
 
+![Auðhumla's Lick by the water](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/lick.jpg)
+
 - Build it with the hammer under Furniture: 10 Stone, 4 Flint and 2 Tin, at a forge.
 - Look at a tamed animal near a lick to see how long it stays fed.
 
