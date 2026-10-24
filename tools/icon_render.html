@@ -1,0 +1,36 @@
+<!doctype html><html><body style="margin:0;background:transparent">
+<canvas id="c" width="320" height="320"></canvas>
+<script type="module">
+import * as THREE from './three.module.js';
+const r=new THREE.WebGLRenderer({canvas:document.getElementById('c'),alpha:true,antialias:true,preserveDrawingBuffer:true});
+r.setClearColor(0x000000,0); r.outputColorSpace=THREE.SRGBColorSpace;
+async function mesh(name){
+  const b=await (await fetch('assets/'+name+'.mesh')).arrayBuffer(); const dv=new DataView(b);
+  const nv=dv.getInt32(4,true), ni=dv.getInt32(8,true); let o=12;
+  const P=new Float32Array(b.slice(o,o+nv*12)); o+=nv*12; const N=new Float32Array(b.slice(o,o+nv*12)); o+=nv*12;
+  const UV=new Float32Array(b.slice(o,o+nv*8)); o+=nv*8; const I=new Uint32Array(b.slice(o,o+ni*4));
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('normal',new THREE.BufferAttribute(N,3));
+  g.setAttribute('uv',new THREE.BufferAttribute(UV,2)); g.setIndex(new THREE.BufferAttribute(I,1));
+  const tex=await new THREE.TextureLoader().loadAsync('assets/'+name+'_d.png'); tex.colorSpace=THREE.SRGBColorSpace; tex.flipY=false;
+  tex.magFilter=THREE.NearestFilter;
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({map:tex,roughness:0.75,metalness:0.0}));
+}
+window.render=async (names,yaw,pitch,flipV)=>{
+  const s=new THREE.Scene(); const grp=new THREE.Group();
+  for(const n of names){const m=await mesh(n); if(flipV){m.material.map.flipY=true;m.material.map.needsUpdate=true;} grp.add(m);} s.add(grp);
+  s.add(new THREE.AmbientLight(0xffffff,0.9));
+  const k=new THREE.DirectionalLight(0xfff0d8,2.8); k.position.set(-2,3,3); s.add(k);
+  const f=new THREE.DirectionalLight(0xb8c8ff,0.6); f.position.set(3,1,-2); s.add(f);
+  const box=new THREE.Box3().setFromObject(grp); const c=box.getCenter(new THREE.Vector3()); const size=box.getSize(new THREE.Vector3()).length();
+  const cam=new THREE.OrthographicCamera(-1,1,1,-1,0.01,100);
+  const y=yaw*Math.PI/180, p=pitch*Math.PI/180;
+  cam.position.set(c.x+Math.sin(y)*Math.cos(p)*size*2, c.y+Math.sin(p)*size*2, c.z+Math.cos(y)*Math.cos(p)*size*2); cam.lookAt(c);
+  // fit: project box corners
+  cam.updateMatrixWorld(); let mx=0;
+  const pts=[]; for(const X of [box.min.x,box.max.x])for(const Y of [box.min.y,box.max.y])for(const Z of [box.min.z,box.max.z])pts.push(new THREE.Vector3(X,Y,Z));
+  const inv=cam.matrixWorldInverse; for(const q of pts){const v=q.clone().applyMatrix4(inv); mx=Math.max(mx,Math.abs(v.x),Math.abs(v.y));}
+  cam.left=-mx*1.05;cam.right=mx*1.05;cam.top=mx*1.05;cam.bottom=-mx*1.05;cam.updateProjectionMatrix();
+  r.render(s,cam); return document.getElementById('c').toDataURL('image/png');
+};
+window.ready=true;
+</script></body></html>
