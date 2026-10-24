@@ -51,6 +51,8 @@ Nothing is stored in the lick. It stretches the game's own hunger timer while an
 
 **Sleipnir's Post** is a hitching post, carved for Sleipnir, Odin's eight-legged horse. Bring a tamed animal that's following you, use the post, and it's tied: it stays within a rope's length of the post instead of wandering off, with a rope from the post's iron ring to a loop around its neck. The loop is fitted to each animal's own neck, modded animals included.
 
+![A boar, a horse and a bear tied to Sleipnir's Posts](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/post.jpg)
+
 - Build it with the hammer under Furniture: 4 Core Wood and 1 Bronze, at a forge.
 - One post holds 4 animals, each on a 4 m rope. The rope holds in a fight too: a tied animal takes on whatever comes within reach and walks straight back afterwards, instead of chasing off.
 - Shift + E unties everything on the post and they follow you. Telling a tied animal to follow you unties just that one, and if the post is destroyed, its animals stay where they are.

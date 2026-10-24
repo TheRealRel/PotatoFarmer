@@ -25,23 +25,24 @@ This was checked against the game's own skinning math (bone matrices × bind pos
 3. Keep the outline that surrounds the neck's centre line. If several do, keep the biggest, so a rope goes over the fur rather than the skin under it.
 4. A rope pulled tight around an outline lies on its convex hull, so the ring is the hull, pushed out by the rope's thickness. That gives the "resting on the body" look without any physics.
 
+**Measure on the rest pose, not the live pose.** The first working version measured the body as it stood at the moment of tying. Most animals looked fine, but the result changed with the pose: the same bear got its ring right behind the head on one tie and around its shoulders and front legs on the next. The fix is to measure on the **rest (bind) pose**, the pose every skinned mesh is built around:
+
+- For each readable skinned mesh that has the neck bone, `bindposes[slot]` maps the mesh's rest vertices (`sharedMesh.vertices`) straight into the neck bone's own space. Do that for every mesh and cut there.
+- The head bone's rest position in the same space is `bindposes[neck] * inverse(bindposes[head]) * origin`.
+- Multiply by the neck bone's `lossyScale` to work in metres (bones often carry the renderer's big scale). Divide the ring's centre back by it to store it in the bone's units.
+- Store the ring in the neck bone's space and draw it through `neck.localToWorldMatrix`. It then follows the neck exactly the way the skin does, at any pose and any star size, and it's the same every time.
+
+Meshes that aren't CPU-readable (the hen, the modded sheep) have no rest vertices to read. They fall back to the live-pose method below, which suits them; neither has a pose that throws it off.
+
 **Where along the neck.** Cut planes from the neck bone to the head bone (21 steps):
 
-- **Centre line:** the bones can sit off-centre, so the plane direction is re-fitted through the middles of the outlines (power iteration on their spread), when that stays within about 45° of the bone line.
 - **Narrowest outline:** the ring goes where the outline is smallest, because that's where a real rope slides to. On near-ties (within 2%) it takes the one nearest the body.
-- **Not at the head bone itself:** there the cut runs through the skull and jaw, and the ring bows out. It stops at 85% of the way.
-- **Head end sets the size:** no ring more than 1.2× the outline at the head end, so a lowered head can't make the shoulders win.
+- **Head end sets the size:** no ring more than 1.2× the outline at the head end, so the shoulders can't win.
 - **A touch back:** finally 1.5 cm towards the body, so the ring rests on the neck rather than against the head.
 - **Rounding:** low-poly hulls have long straight sides (the lox). The ring is stored as a radius at 48 angles, smoothed 8 times with a 1-2-1 kernel, and never let below 94% of the hull. The rope eases around corners and sinks slightly into fur there.
+- **Live pose only:** the centre line is re-fitted through the middles of the outlines (power iteration on their spread), when that stays within about 45° of the bone line, because some rigs' bones run along the back of the neck (the hen's). And the ring stops at 85% of the way to the head bone, because in a live pose with the head lowered the cut at the head bone runs through the skull and jaw.
 
-The ring is then stored relative to the bone it sits nearer (neck or head), so it follows the animation.
-
-**Exceptions, kept short.** Two kinds of creature need a rule of their own:
-
-- **No neck at all** (Greydwarf, Greyling): a waist belt instead, the same fit between the two lowest spine bones.
-- **Pose changes the outline too much** (the vanilla bear, whose neck bone sits in its shoulders): a set place between the bones, 0.88 of the way to the head, still shaped by the real outline there.
-
-Both lists are by prefab name at the top of `Post.cs`.
+**One exception, by prefab name** at the top of `Post.cs`: creatures with no neck at all (Greydwarf, Greyling) wear a waist belt instead, the same fit between the two lowest spine bones.
 
 **Getting the data.** `src/NeckData.cs` (off in releases; set `Capture = true`) writes `BepInEx/PotatoFarmer-necks/<creature>.txt` the first time each creature type is tied. Every line is one record, tab-separated, in metres, in the creature's own space (x right, y up, z forward, root scale undone):
 
@@ -61,4 +62,4 @@ Both lists are by prefab name at the top of `Post.cs`.
 
 With `raw` and `matrix`, any reading of the mesh can be rebuilt offline. With `local`, `bind` and `bonematrix`, the game's own skinning can be recomputed as ground truth.
 
-**How it was built.** One capture build that changed nothing on screen. Then offline work in Python on the dumped data: drawing each animal's body with the proposed ring, side view and cross-section, until all of them looked right. Only then one game build. Testing 12 creatures (vanilla and modded) this way took two capture runs and a handful of in-game checks. The earlier approach of adjusting in game and looking each time had taken far more rounds without converging.
+**How it was built.** One capture build that changed nothing on screen. Then offline work in Python on the dumped data: drawing each animal's body with the proposed ring, side view and cross-section, until all of them looked right. Only then one game build. Testing 12 creatures (vanilla and modded) this way took two capture runs and a handful of in-game checks. The rest-pose step came last, from in-game testing: an animal tied while running showed how much the live pose mattered. The earlier approach of adjusting in game and looking each time had taken far more rounds without converging.
