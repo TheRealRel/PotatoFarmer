@@ -222,7 +222,7 @@ namespace PotatoFarmer
             }
             NeckRing.Fit fit = null;
             if (to)
-                try { fit = NeckRing.Between(animal, from.position, to.position, Bins, RopeRadius * 0.8f); }
+                try { fit = NeckRing.Between(animal, from.position, to.position, Bins, RopeRadius * 0.8f, SetPlace(animal)); }
                 catch (System.Exception e) { Plugin.Log.LogWarning($"Hitching post: couldn't measure {animal.name}: {e.GetBaseException().Message}"); }
             Vector3 center, a, c;
             if (fit != null)
@@ -266,6 +266,16 @@ namespace PotatoFarmer
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
             return go;
+        }
+
+        // Creatures whose neck outline changes too much with their pose for the narrowest-place search, so the ring goes
+        // at a set place between the neck and head bones instead (0 = neck bone, 1 = head bone).
+        private static readonly Dictionary<string, float> SetPlaces = new Dictionary<string, float> { { "Bjorn", 0.88f } };
+        private static float SetPlace(Character animal)
+        {
+            string name = Utils.GetPrefabName(animal.gameObject);
+            foreach (var pair in SetPlaces) if (name.StartsWith(pair.Key, System.StringComparison.OrdinalIgnoreCase)) return pair.Value;
+            return -1f;
         }
 
         // Creatures with no real neck, which wear the rope as a belt instead.

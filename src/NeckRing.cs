@@ -235,7 +235,7 @@ namespace PotatoFarmer
         }
 
         // The ring between two bones, from the body's real outline. Null if the body can't be read.
-        internal static Fit Between(Character animal, Vector3 from, Vector3 to, int bins, float ropeRadius)
+        internal static Fit Between(Character animal, Vector3 from, Vector3 to, int bins, float ropeRadius, float fixedAt = -1f)
         {
             var points = new List<Vector3>();
             var triangles = new List<int>();
@@ -291,6 +291,14 @@ namespace PotatoFarmer
                 at.Add(t);
             }
             if (found.Count == 0) return null;
+            if (fixedAt >= 0f)
+            {
+                // A set place along the neck (creatures whose outline changes too much with their pose): the outline there,
+                // or the nearest one found.
+                int near = 0;
+                for (int i = 1; i < found.Count; i++) if (Mathf.Abs(at[i] - fixedAt) < Mathf.Abs(at[near] - fixedAt)) near = i;
+                return Shape(found[near].Value, at[near], from, to, u, v, bins, ropeRadius);
+            }
             // The outline nearest the head sets the neck's size: anything much bigger is the shoulders (a bear with
             // its head down), not the neck.
             float limit = found[found.Count - 1].Key * NeckSize;
@@ -308,14 +316,19 @@ namespace PotatoFarmer
             var hull = back < at[pick] ? Ring(points, triangles, Vector3.Lerp(from, to, back), a, u, v, reach) : null;
             if (hull != null) at[pick] = back;
             else hull = found[pick].Value;
+            return Shape(hull, at[pick], from, to, u, v, bins, ropeRadius);
+        }
+
+        private static Fit Shape(List<Vector2> hull, float where, Vector3 from, Vector3 to, Vector3 u, Vector3 v, int bins, float ropeRadius)
+        {
             var middle = Middle(hull);
             var fit = new Fit
             {
-                At = at[pick],
+                At = where,
                 Round = Length(hull),
                 A = u,
                 C = v,
-                Center = Vector3.Lerp(from, to, at[pick]) + u * middle.x + v * middle.y,
+                Center = Vector3.Lerp(from, to, where) + u * middle.x + v * middle.y,
                 Radii = new float[bins]
             };
             // The hull as a distance from its middle at each angle, plus the rope's own thickness so it rests on top.
