@@ -248,7 +248,7 @@ namespace PotatoFarmer
                 a.Normalize();
                 c = Vector3.Cross(along, a).normalized;
                 rope.Radii = Enumerable.Repeat(Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f), Bins).ToArray();
-                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} body couldn't be read, plain ring.");
+                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} no outline found round the {where}, plain ring.");
             }
             rope.LocalCenter = rope.Neck.InverseTransformPoint(center);
             rope.LocalA = rope.Neck.InverseTransformDirection(a);

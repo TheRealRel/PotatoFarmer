@@ -27,6 +27,7 @@ namespace PotatoFarmer
         }
 
         private const float Weld = 0.0005f;
+        private const float Back = 0.015f;  // metres further towards the body than the narrowest place
 
         // The body in world space: every visible skinned mesh (only the most detailed level of a LOD group), with
         // vertices that share a place merged, so the outlines join up across UV seams.
@@ -238,7 +239,7 @@ namespace PotatoFarmer
             if (!Body(animal, points, triangles)) return null;
             float length = Vector3.Distance(from, to);
             if (length < 0.001f) return null;
-            float reach = Mathf.Max(animal.GetRadius(), length);
+            float reach = Mathf.Max(animal.GetRadius(), length) * 2f;
             Vector3 up = animal.transform.up;
             Frame(to - from, up, out var a, out var u, out var v);
 
@@ -279,7 +280,8 @@ namespace PotatoFarmer
             var found = new List<KeyValuePair<float, List<Vector2>>>();
             var at = new List<float>();
             float smallest = float.MaxValue;
-            for (int i = 0; i <= 20; i++)
+            // Not right at the head bone: there the cut goes through the skull and jaw (the bear's ring bowed out).
+            for (int i = 0; i <= 17; i++)
             {
                 float t = i / 20f;
                 var ring = Ring(points, triangles, Vector3.Lerp(from, to, t), a, u, v, reach);
@@ -293,12 +295,16 @@ namespace PotatoFarmer
             int pick = 0;
             for (int i = 0; i < found.Count; i++)
                 if (found[i].Key <= smallest * 1.02f) { pick = i; break; }
-            var hull = found[pick].Value;
+            // Then a touch further back towards the body, so it sits on the neck rather than up against the head.
+            float back = Mathf.Max(0f, at[pick] - Back / length);
+            var hull = back < at[pick] ? Ring(points, triangles, Vector3.Lerp(from, to, back), a, u, v, reach) : null;
+            if (hull != null) at[pick] = back;
+            else hull = found[pick].Value;
             var middle = Middle(hull);
             var fit = new Fit
             {
                 At = at[pick],
-                Round = found[pick].Key,
+                Round = Length(hull),
                 A = u,
                 C = v,
                 Center = Vector3.Lerp(from, to, at[pick]) + u * middle.x + v * middle.y,
