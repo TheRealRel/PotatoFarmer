@@ -29,7 +29,7 @@ namespace PotatoFarmer
         private const float Weld = 0.0005f;
         private const float Back = 0.015f;
         private const float NeckSize = 1.2f;     // how much bigger than the head end's outline a neck ring may be
-        private const float ShortOfHead = 0.85f; // how far towards the head bone the ring may go
+        private const float ShortOfHead = 0.85f; // how far towards the head bone the ring may go (live pose; the rest pose allows all the way)
         private const int SmoothPasses = 8;  // metres further towards the body than the narrowest place
 
         // The body in world space: every visible skinned mesh (only the most detailed level of a LOD group), with
@@ -234,21 +234,85 @@ namespace PotatoFarmer
             return sum / hull.Count;
         }
 
-        // The ring between two bones, from the body's real outline. Null if the body can't be read.
+        // The ring between two bones, from the body as it stands now (for meshes that can't be read in their rest pose).
+        // Null if the body can't be read.
         internal static Fit Between(Character animal, Vector3 from, Vector3 to, int bins, float ropeRadius, float fixedAt = -1f)
         {
             var points = new List<Vector3>();
             var triangles = new List<int>();
             if (!Body(animal, points, triangles)) return null;
+            return Core(points, triangles, from, to, animal.transform.up, animal.GetRadius(), bins, ropeRadius, fixedAt, true, ShortOfHead);
+        }
+
+        // The ring on the rest pose, in the first bone's own space: the pose every skinned mesh is built around, so the
+        // ring is the same whatever the animal was doing when it was tied, and it rides on that bone the way the skin
+        // does. Needs a readable mesh skinned to both bones; null otherwise. The fit's Center, A and C are in the bone's
+        // local space (its units), its radii in metres at the creature's current size.
+        internal static Fit Rest(Character animal, Transform fromBone, Transform toBone, int bins, float ropeRadius)
+        {
+            var points = new List<Vector3>();
+            var triangles = new List<int>();
+            var index = new Dictionary<Vector3Int, int>();
+            Vector3 lossy = fromBone.lossyScale;
+            float scale = (Mathf.Abs(lossy.x) + Mathf.Abs(lossy.y) + Mathf.Abs(lossy.z)) / 3f;  // metres per bone unit
+            if (scale < 1e-6f) return null;
+            Vector3? head = null;
+            foreach (var skin in animal.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!skin.enabled || !skin.gameObject.activeInHierarchy || !skin.sharedMesh || !skin.sharedMesh.isReadable || !FinestLevel(skin)) continue;
+                var bones = skin.bones;
+                int k = bones == null ? -1 : System.Array.IndexOf(bones, fromBone);
+                if (k < 0) continue;
+                Matrix4x4[] binds;
+                Vector3[] vertices;
+                int[] tris;
+                try { binds = skin.sharedMesh.bindposes; vertices = skin.sharedMesh.vertices; tris = skin.sharedMesh.triangles; }
+                catch { continue; }
+                if (k >= binds.Length) continue;
+                var toLocal = binds[k];
+                int j = System.Array.IndexOf(bones, toBone);
+                if (head == null && j >= 0 && j < binds.Length)
+                    head = toLocal.MultiplyPoint3x4(binds[j].inverse.MultiplyPoint3x4(Vector3.zero)) * scale;
+                var map = new int[vertices.Length];
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    var p = toLocal.MultiplyPoint3x4(vertices[i]) * scale;
+                    var key = new Vector3Int(Mathf.RoundToInt(p.x / Weld), Mathf.RoundToInt(p.y / Weld), Mathf.RoundToInt(p.z / Weld));
+                    if (!index.TryGetValue(key, out int at))
+                    {
+                        at = points.Count;
+                        points.Add(p);
+                        index[key] = at;
+                    }
+                    map[i] = at;
+                }
+                for (int i = 0; i + 2 < tris.Length; i += 3)
+                {
+                    int x = map[tris[i]], y = map[tris[i + 1]], z = map[tris[i + 2]];
+                    if (x == y || y == z || x == z) continue;
+                    triangles.Add(x);
+                    triangles.Add(y);
+                    triangles.Add(z);
+                }
+            }
+            if (head == null || triangles.Count == 0) return null;
+            var up = fromBone.InverseTransformDirection(animal.transform.up);
+            var fit = Core(points, triangles, Vector3.zero, head.Value, up, animal.GetRadius(), bins, ropeRadius, -1f, false, 1f);
+            if (fit != null) fit.Center /= scale;
+            return fit;
+        }
+
+        private static Fit Core(List<Vector3> points, List<int> triangles, Vector3 from, Vector3 to, Vector3 up, float radius, int bins,
+            float ropeRadius, float fixedAt, bool refine, float shortOfHead)
+        {
             float length = Vector3.Distance(from, to);
             if (length < 0.001f) return null;
-            float reach = Mathf.Max(animal.GetRadius(), length) * 2f;
-            Vector3 up = animal.transform.up;
+            float reach = Mathf.Max(radius, length) * 2f;
             Frame(to - from, up, out var a, out var u, out var v);
 
             // The neck's own centre line, through the middles of its outlines.
             var middles = new List<Vector3>();
-            for (int i = 0; i <= 8; i++)
+            for (int i = 0; refine && i <= 8; i++)
             {
                 var c = Vector3.Lerp(from, to, i / 8f);
                 var ring = Ring(points, triangles, c, a, u, v, reach);
@@ -256,7 +320,7 @@ namespace PotatoFarmer
                 var m = Middle(ring);
                 middles.Add(c + u * m.x + v * m.y);
             }
-            if (middles.Count >= 3)
+            if (refine && middles.Count >= 3)
             {
                 var mean = Vector3.zero;
                 foreach (var m in middles) mean += m;
@@ -306,10 +370,10 @@ namespace PotatoFarmer
             // and on near-ties the one nearer the body. If only the head end qualifies, the one nearest the body.
             float smallest = float.MaxValue;
             for (int i = 0; i < found.Count; i++)
-                if (at[i] <= ShortOfHead && found[i].Key <= limit) smallest = Mathf.Min(smallest, found[i].Key);
+                if (at[i] <= shortOfHead && found[i].Key <= limit) smallest = Mathf.Min(smallest, found[i].Key);
             int pick = -1;
             for (int i = 0; i < found.Count && pick < 0; i++)
-                if (smallest < float.MaxValue ? at[i] <= ShortOfHead && found[i].Key <= smallest * 1.02f : found[i].Key <= limit) pick = i;
+                if (smallest < float.MaxValue ? at[i] <= shortOfHead && found[i].Key <= smallest * 1.02f : found[i].Key <= limit) pick = i;
             if (pick < 0) pick = found.Count - 1;
             // Then a touch further back towards the body, so it sits on the neck rather than up against the head.
             float back = Mathf.Max(0f, at[pick] - Back / length);
