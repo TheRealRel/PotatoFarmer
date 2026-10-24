@@ -162,7 +162,7 @@ namespace PotatoFarmer
             prefab.AddComponent<Trough>();
             troughPiece = piece.Piece;
             troughPiece.m_enabled = TroughEnabled.Value;
-            if (!GUIManager.IsHeadless()) troughPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            if (!GUIManager.IsHeadless()) troughPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(25f, 30f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Feeding trough added to the hammer.");
         }
@@ -203,7 +203,7 @@ namespace PotatoFarmer
             prefab.AddComponent<Roost>();
             roostPiece = piece.Piece;
             roostPiece.m_enabled = RoostEnabled.Value;
-            if (!GUIManager.IsHeadless()) roostPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            if (!GUIManager.IsHeadless()) roostPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(25f, 25f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Roost added to the hammer.");
         }
@@ -249,10 +249,15 @@ namespace PotatoFarmer
             prefab.AddComponent<Cask>();
             caskPiece = piece.Piece;
             caskPiece.m_enabled = CaskEnabled.Value;
-            if (!GUIManager.IsHeadless()) caskPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 230f, 0f));
+            if (!GUIManager.IsHeadless()) caskPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(55f, 15f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Cask added to the hammer.");
         }
+
+        // The hammer icon's view: Jötunn's camera looks at the model's front (+Z, the side the player faces when placing
+        // it) from the front; turn it by yaw degrees round the model (towards the model's -X end) and look down by pitch.
+        // Rotation order matters: the yaw first, then the tilt, so the camera always ends up above the model.
+        private static Quaternion IconView(float yaw, float pitch) => Quaternion.Euler(pitch, 0f, 0f) * Quaternion.Euler(0f, yaw, 0f);
 
         private static void AddLick()
         {
@@ -284,7 +289,7 @@ namespace PotatoFarmer
             prefab.AddComponent<Lick>();
             lickPiece = piece.Piece;
             lickPiece.m_enabled = LickEnabled.Value;
-            if (!GUIManager.IsHeadless()) lickPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            if (!GUIManager.IsHeadless()) lickPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(25f, 15f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Salt lick added to the hammer.");
         }
@@ -319,7 +324,7 @@ namespace PotatoFarmer
             prefab.AddComponent<Post>();
             postPiece = piece.Piece;
             postPiece.m_enabled = PostEnabled.Value;
-            if (!GUIManager.IsHeadless()) postPiece.m_icon = RenderManager.Instance.Render(prefab, Quaternion.Euler(20f, 200f, 0f));
+            if (!GUIManager.IsHeadless()) postPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(20f, 10f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Hitching post added to the hammer.");
         }
