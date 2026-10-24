@@ -197,10 +197,31 @@ namespace PotatoFarmer
                 where = "waist";
             }
             NeckRing.Fit fit = null;
+            bool rest = false;
             if (to)
-                try { fit = NeckRing.Between(animal, from.position, to.position, Bins, RopeRadius * 0.8f, SetPlace(animal)); }
+                try
+                {
+                    fit = NeckRing.Rest(animal, from, to, Bins, RopeRadius * 0.8f);
+                    rest = fit != null;
+                    if (fit == null) fit = NeckRing.Between(animal, from.position, to.position, Bins, RopeRadius * 0.8f);
+                }
                 catch (System.Exception e) { Plugin.Log.LogWarning($"Hitching post: couldn't measure {animal.name}: {e.GetBaseException().Message}"); }
             Vector3 center, a, c;
+            if (fit != null && rest)
+            {
+                // Measured on the rest pose in the first bone's own space: it rides on that bone like the skin.
+                rope.Neck = from;
+                rope.Radii = fit.Radii;
+                rope.LocalCenter = fit.Center;
+                rope.LocalA = fit.A;
+                rope.LocalC = fit.C;
+                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} {where} ring {fit.Round + 2f * Mathf.PI * RopeRadius * 0.8f:0.00} m round, " +
+                    $"{fit.At:0.00} of the way from {from.name} to {to.name} (rest pose).");
+                rope.CollarMesh = new Mesh { name = "potato_post_collar" };
+                rope.CollarMesh.MarkDynamic();
+                rope.Collar = Holder("PotatoPostCollar", rope.CollarMesh);
+                return rope;
+            }
             if (fit != null)
             {
                 center = fit.Center;
@@ -209,7 +230,7 @@ namespace PotatoFarmer
                 rope.Radii = fit.Radii;
                 // The ring rides on whichever bone it sits nearer, so it stays put when the head turns.
                 rope.Neck = fit.At < 0.5f ? from : to;
-                Plugin.Log.LogDebug($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} {where} ring {fit.Round + 2f * Mathf.PI * RopeRadius * 0.8f:0.00} m round, " +
+                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} {where} ring {fit.Round + 2f * Mathf.PI * RopeRadius * 0.8f:0.00} m round, " +
                     $"{fit.At:0.00} of the way from {from.name} to {to.name}.");
             }
             else
@@ -224,7 +245,7 @@ namespace PotatoFarmer
                 a.Normalize();
                 c = Vector3.Cross(along, a).normalized;
                 rope.Radii = Enumerable.Repeat(Mathf.Clamp(animal.GetRadius() * 0.26f, 0.08f, 0.38f), Bins).ToArray();
-                Plugin.Log.LogDebug($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} no outline found round the {where}, plain ring.");
+                Plugin.Log.LogInfo($"Hitching post: {Utils.GetPrefabName(animal.gameObject)} no outline found round the {where}, plain ring.");
             }
             rope.LocalCenter = rope.Neck.InverseTransformPoint(center);
             rope.LocalA = rope.Neck.InverseTransformDirection(a);
@@ -242,16 +263,6 @@ namespace PotatoFarmer
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = RopeLook();
             return go;
-        }
-
-        // Creatures whose neck outline changes too much with their pose for the narrowest-place search, so the ring goes
-        // at a set place between the neck and head bones instead (0 = neck bone, 1 = head bone).
-        private static readonly Dictionary<string, float> SetPlaces = new Dictionary<string, float> { { "Bjorn", 0.88f } };
-        private static float SetPlace(Character animal)
-        {
-            string name = Utils.GetPrefabName(animal.gameObject);
-            foreach (var pair in SetPlaces) if (name.StartsWith(pair.Key, System.StringComparison.OrdinalIgnoreCase)) return pair.Value;
-            return -1f;
         }
 
         // Creatures with no real neck, which wear the rope as a belt instead.
