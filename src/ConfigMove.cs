@@ -1,4 +1,4 @@
-// Settings that moved to a new section or name: the old value is copied once and the old line dropped from the file.
+// Settings that moved to a new section or name: the old value is copied once and the old sections dropped from the file.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,6 +49,12 @@ namespace PotatoFarmer
                     }
                     orphans?.Remove(oldDef);
                 }
+                // Anything else left in an old section (settings an earlier version dropped) goes too.
+                var oldSections = new HashSet<string>();
+                foreach (var key in moves.Keys) oldSections.Add(key.Substring(0, key.IndexOf('|')));
+                if (orphans != null)
+                    foreach (var def in new List<ConfigDefinition>(orphans.Keys))
+                        if (oldSections.Contains(def.Section)) orphans.Remove(def);
                 if (moved > 0) Plugin.Log.LogInfo($"Settings regrouped: {moved} values carried over to their new places.");
                 config.Save();
             }
