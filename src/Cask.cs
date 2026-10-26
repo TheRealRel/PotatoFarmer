@@ -62,8 +62,10 @@ namespace PotatoFarmer
         {
             try
             {
+                // Potato Tweaks 1.5.17 on: "8 - Stations and building" / "Fermenter speed"; before: "13 - Fermenters" / "Speed".
                 if (Chainloader.PluginInfos.TryGetValue("potato.tweaks", out var tweaks) && tweaks.Instance &&
-                    tweaks.Instance.Config.TryGetEntry<float>("13 - Fermenters", key, out var entry))
+                    (tweaks.Instance.Config.TryGetEntry<float>("8 - Stations and building", "Fermenter " + key.ToLowerInvariant(), out var entry) ||
+                     tweaks.Instance.Config.TryGetEntry<float>("13 - Fermenters", key, out entry)))
                     return Mathf.Max(0.1f, entry.Value);
             }
             catch (Exception) { }

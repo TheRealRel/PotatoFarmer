@@ -63,27 +63,27 @@ Everyone needs the mod, the server included, because the pieces are part of your
 
 ## Settings
 
-In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager. Everything marked "server" is set by the server and synced to players.
+In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager, all in one section ("1 - Pieces"), each setting starting with its piece. Everything marked "server" is set by the server and synced to players.
 
 | Setting | Default | What it does |
 |---|---|---|
-| Trough: Enabled | On | Show the trough on the hammer. Troughs already built stay and keep working. Server. |
-| Trough: Capacity | 100 | How much food one trough holds. Server. |
-| Trough: Reach | 25 m | How far away hungry animals notice the trough and walk over (5-60 m). Server. |
-| Trough: Show food in the bowl | On | Show the trough's contents as food in the bowl, only on your screen. |
-| Roost: Enabled | On | Show the roost on the hammer. Roosts already built stay and keep working. Server. |
-| Roost: Capacity | 60 | How many eggs one roost holds. Server. |
-| Roost: Reach | 10 m | How far away the roost gathers eggs (2-30 m). Server. |
-| Roost: Flock size | 6 | With a fire nearby, the roost hatches eggs while there are fewer hens and chicks than this within its reach. 0 never hatches. Server. |
-| Cask: Enabled | On | Show the cask on the hammer. Casks already built stay and keep working. Server. |
-| Cask: Batches | 4 | How many mead bases one cask brews at once (1-20). Server. |
-| Cask: Mix mead bases | Off | Let one cask brew different mead bases at once. Server. |
-| Lick: Enabled | On | Show the salt lick on the hammer. Licks already built stay and keep working. Server. |
-| Lick: Fed time | 2 | Tamed animals near a lick stay fed this many times as long between meals (1-5). 1 = no change. Server. |
-| Lick: Reach | 10 m | How far away the lick works (2-30 m). Server. |
-| Post: Enabled | On | Show the hitching post on the hammer. Posts already built stay and keep working. Server. |
-| Post: Animals per post | 4 | How many tamed animals one post holds (1-10). Server. |
-| Post: Rope length | 4 m | How far a tied animal can wander from beside the post (2-10 m). Server. |
+| Trough | On | Show the trough on the hammer. Troughs already built stay and keep working. Server. |
+| Trough capacity | 100 | How much food one trough holds. Server. |
+| Trough reach | 25 m | How far away hungry animals notice the trough and walk over (5-60 m). Server. |
+| Trough food in the bowl | On | Show the trough's contents as food in the bowl, only on your screen. |
+| Roost | On | Show the roost on the hammer. Roosts already built stay and keep working. Server. |
+| Roost capacity | 60 | How many eggs one roost holds. Server. |
+| Roost reach | 10 m | How far away the roost gathers eggs (2-30 m). Server. |
+| Roost flock size | 6 | With a fire nearby, the roost hatches eggs while there are fewer hens and chicks than this within its reach. 0 never hatches. Server. |
+| Cask | On | Show the cask on the hammer. Casks already built stay and keep working. Server. |
+| Cask batches | 4 | How many mead bases one cask brews at once (1-20). Server. |
+| Cask mixes mead bases | Off | Let one cask brew different mead bases at once. Server. |
+| Lick | On | Show the salt lick on the hammer. Licks already built stay and keep working. Server. |
+| Lick fed time | 2 | Tamed animals near a lick stay fed this many times as long between meals (1-5). 1 = no change. Server. |
+| Lick reach | 10 m | How far away the lick works (2-30 m). Server. |
+| Post | On | Show the hitching post on the hammer. Posts already built stay and keep working. Server. |
+| Post animals | 4 | How many tamed animals one post holds (1-10). Server. |
+| Post rope length | 4 m | How far a tied animal can wander from beside the post (2-10 m). Server. |
 
 Bug reports go to [GitHub Issues](https://github.com/TheRealRel/PotatoFarmer/issues), where the source lives too. Questions are welcome on Discord: [relanebeis](https://discord.com/users/373574370267889674).
 

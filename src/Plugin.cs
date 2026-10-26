@@ -22,28 +22,27 @@ namespace PotatoFarmer
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Id = "potato.farmer", Version = "1.3.0";
+        public const string Id = "potato.farmer", Version = "1.3.1";
         // Saved in worlds: never rename.
         public const string TroughPiece = "piece_potato_trough";
         public const string TroughName = "$piece_potato_trough";
         private const string TroughDescription = "$piece_potato_trough_description";
-        private const string TroughSection = "1 - Trough"; // No apostrophes: BepInEx rejects them in section names.
         public const string RoostPiece = "piece_potato_roost";
         public const string RoostName = "$piece_potato_roost";
         private const string RoostDescription = "$piece_potato_roost_description";
-        private const string RoostSection = "2 - Roost";
         public const string CaskPiece = "piece_potato_cask";
         public const string CaskName = "$piece_potato_cask";
         private const string CaskDescription = "$piece_potato_cask_description";
-        private const string CaskSection = "3 - Cask";
         public const string LickPiece = "piece_potato_lick";
         public const string LickName = "$piece_potato_lick";
         private const string LickDescription = "$piece_potato_lick_description";
-        private const string LickSection = "4 - Lick";
         public const string PostPiece = "piece_potato_post";
         public const string PostName = "$piece_potato_post";
         private const string PostDescription = "$piece_potato_post_description";
-        private const string PostSection = "5 - Post";
+
+        // One section, so Configuration Manager stays short; each setting starts with the piece it belongs to.
+        // No apostrophes or = \ " [ ] in names: BepInEx rejects them.
+        private const string Section = "1 - Pieces";
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<int> TroughCapacity, RoostCapacity, RoostFlock, CaskBatches, PostAnimals;
@@ -55,49 +54,71 @@ namespace PotatoFarmer
         {
             Log = Logger;
             Assets.Dir = Path.Combine(Path.GetDirectoryName(Info.Location) ?? "", "assets");
+            var before = ConfigMove.Read(Config.ConfigFilePath);
             var serverSet = new ConfigurationManagerAttributes { IsAdminOnly = true };
-            TroughEnabled = Config.Bind(TroughSection, "Enabled", true,
+            TroughEnabled = Config.Bind(Section, "Trough", true,
                 new ConfigDescription("Show the feeding trough on the hammer. Troughs already built stay and keep working. Set by the server.", null, serverSet));
-            TroughCapacity = Config.Bind(TroughSection, "Capacity", 100,
+            TroughCapacity = Config.Bind(Section, "Trough capacity", 100,
                 new ConfigDescription("How many food items one trough holds. Set by the server.", new AcceptableValueRange<int>(1, 500), serverSet));
-            TroughReach = Config.Bind(TroughSection, "Reach", 25f,
+            TroughReach = Config.Bind(Section, "Trough reach", 25f,
                 new ConfigDescription("How far away (metres) hungry animals notice the trough and walk over to eat. 25 covers a big farm pen; animals on their own only look about 10 m for food. Set by the server.",
                     new AcceptableValueRange<float>(5f, 60f), serverSet));
-            TroughShowFood = Config.Bind(TroughSection, "Show food in the bowl", true, "Show what is in the trough as food models in the bowl (only on your screen).");
+            TroughShowFood = Config.Bind(Section, "Trough food in the bowl", true, "Show what is in the trough as food models in the bowl (only on your screen).");
             TroughEnabled.SettingChanged += (_, __) => { if (troughPiece) troughPiece.m_enabled = TroughEnabled.Value; };
-            RoostEnabled = Config.Bind(RoostSection, "Enabled", true,
+            RoostEnabled = Config.Bind(Section, "Roost", true,
                 new ConfigDescription("Show the roost on the hammer. Roosts already built stay and keep working. Set by the server.", null, serverSet));
-            RoostCapacity = Config.Bind(RoostSection, "Capacity", 60,
+            RoostCapacity = Config.Bind(Section, "Roost capacity", 60,
                 new ConfigDescription("How many eggs one roost holds. Set by the server.", new AcceptableValueRange<int>(1, 500), serverSet));
-            RoostReach = Config.Bind(RoostSection, "Reach", 10f,
+            RoostReach = Config.Bind(Section, "Roost reach", 10f,
                 new ConfigDescription("How far away (metres) the roost gathers eggs. Hens only breed with others within 10 m, so 10 covers a coop. Set by the server.",
                     new AcceptableValueRange<float>(2f, 30f), serverSet));
-            RoostFlock = Config.Bind(RoostSection, "Flock size", 6,
+            RoostFlock = Config.Bind(Section, "Roost flock size", 6,
                 new ConfigDescription("With a fire near the roost, it hatches its eggs one at a time while there are fewer hens (and chicks) than this within its reach. 0 = never hatch. Set by the server.",
                     new AcceptableValueRange<int>(0, 30), serverSet));
             RoostEnabled.SettingChanged += (_, __) => { if (roostPiece) roostPiece.m_enabled = RoostEnabled.Value; };
-            CaskEnabled = Config.Bind(CaskSection, "Enabled", true,
+            CaskEnabled = Config.Bind(Section, "Cask", true,
                 new ConfigDescription("Show the cask on the hammer. Casks already built stay and keep working. Set by the server.", null, serverSet));
-            CaskBatches = Config.Bind(CaskSection, "Batches", 4,
+            CaskBatches = Config.Bind(Section, "Cask batches", 4,
                 new ConfigDescription("How many mead bases one cask brews at once, each like a fermenter of its own. Set by the server.", new AcceptableValueRange<int>(1, 20), serverSet));
-            CaskMix = Config.Bind(CaskSection, "Mix mead bases", false,
+            CaskMix = Config.Bind(Section, "Cask mixes mead bases", false,
                 new ConfigDescription("Let one cask brew different mead bases at once. Off: a cask brews one kind at a time, until it's emptied. Set by the server.", null, serverSet));
             CaskEnabled.SettingChanged += (_, __) => { if (caskPiece) caskPiece.m_enabled = CaskEnabled.Value; };
-            LickEnabled = Config.Bind(LickSection, "Enabled", true,
+            LickEnabled = Config.Bind(Section, "Lick", true,
                 new ConfigDescription("Show the salt lick on the hammer. Licks already built stay and keep working. Set by the server.", null, serverSet));
-            LickFedTime = Config.Bind(LickSection, "Fed time", 2f,
+            LickFedTime = Config.Bind(Section, "Lick fed time", 2f,
                 new ConfigDescription("Tamed animals near a lick stay fed this many times as long between meals (on top of any other mod that changes it). 1 = no change. Set by the server.",
                     new AcceptableValueRange<float>(1f, 5f), serverSet));
-            LickReach = Config.Bind(LickSection, "Reach", 10f,
+            LickReach = Config.Bind(Section, "Lick reach", 10f,
                 new ConfigDescription("How far away (metres) the lick works. 10 covers a pen. Set by the server.", new AcceptableValueRange<float>(2f, 30f), serverSet));
             LickEnabled.SettingChanged += (_, __) => { if (lickPiece) lickPiece.m_enabled = LickEnabled.Value; };
-            PostEnabled = Config.Bind(PostSection, "Enabled", true,
+            PostEnabled = Config.Bind(Section, "Post", true,
                 new ConfigDescription("Show the hitching post on the hammer. Posts already built stay and keep working. Set by the server.", null, serverSet));
-            PostAnimals = Config.Bind(PostSection, "Animals per post", 4,
+            PostAnimals = Config.Bind(Section, "Post animals", 4,
                 new ConfigDescription("How many tamed animals one post holds. Set by the server.", new AcceptableValueRange<int>(1, 10), serverSet));
-            PostRope = Config.Bind(PostSection, "Rope length", 4f,
+            PostRope = Config.Bind(Section, "Post rope length", 4f,
                 new ConfigDescription("How far (metres) a tied animal can wander from beside the post. Set by the server.", new AcceptableValueRange<float>(2f, 10f), serverSet));
             PostEnabled.SettingChanged += (_, __) => { if (postPiece) postPiece.m_enabled = PostEnabled.Value; };
+            // 1.3.0 and before had a section per piece ("1 - Trough" / "Enabled"...).
+            ConfigMove.Apply(Config, before, new Dictionary<string, ConfigEntryBase>
+            {
+                { "1 - Trough|Enabled", TroughEnabled },
+                { "1 - Trough|Capacity", TroughCapacity },
+                { "1 - Trough|Reach", TroughReach },
+                { "1 - Trough|Show food in the bowl", TroughShowFood },
+                { "2 - Roost|Enabled", RoostEnabled },
+                { "2 - Roost|Capacity", RoostCapacity },
+                { "2 - Roost|Reach", RoostReach },
+                { "2 - Roost|Flock size", RoostFlock },
+                { "3 - Cask|Enabled", CaskEnabled },
+                { "3 - Cask|Batches", CaskBatches },
+                { "3 - Cask|Mix mead bases", CaskMix },
+                { "4 - Lick|Enabled", LickEnabled },
+                { "4 - Lick|Fed time", LickFedTime },
+                { "4 - Lick|Reach", LickReach },
+                { "5 - Post|Enabled", PostEnabled },
+                { "5 - Post|Animals per post", PostAnimals },
+                { "5 - Post|Rope length", PostRope },
+            });
             new Harmony(Id).PatchAll(typeof(Plugin).Assembly);
             PrefabManager.OnVanillaPrefabsAvailable += AddPieces;
         }
