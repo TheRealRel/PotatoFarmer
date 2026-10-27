@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.2
+- No more warning about Sleipnir's Post in the game log at startup.
+
 ## 1.3.1
 - Settings in one section instead of five, each starting with its piece ("Trough capacity", "Post rope length"), so Configuration Manager is quicker to look through. Your settings, and the server's, move over on the first start.
 - The cask keeps following Potato Tweaks' fermenter speed and output with Potato Tweaks 1.5.17, which renamed them.

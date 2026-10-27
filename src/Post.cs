@@ -22,7 +22,9 @@ namespace PotatoFarmer
         private ZNetView view;
 
         private float nextScan;
-        private readonly Dictionary<Character, Rope> ropes = new Dictionary<Character, Rope>();
+        // A list, each rope knowing its animal: Jotunn checks a new piece's fields and warns about a dictionary keyed by a
+        // creature. A post holds a few ropes at most.
+        private readonly List<Rope> ropes = new List<Rope>();
 
         private void Awake()
         {
@@ -106,6 +108,7 @@ namespace PotatoFarmer
         private const float Twist = 0.14f, Spacing = 0.02f;
         private sealed class Rope
         {
+            public Character Animal;
             public GameObject Lead, Collar;
             public Mesh Mesh, CollarMesh;
             public Transform Neck;
@@ -124,13 +127,13 @@ namespace PotatoFarmer
             if (Time.time < nextScan) return;
             nextScan = Time.time + 0.5f;
             var tied = Tied();
-            foreach (var gone in ropes.Keys.Where(c => !c || !tied.Contains(c)).ToList())
+            foreach (var gone in ropes.Where(r => !r.Animal || !tied.Contains(r.Animal)).ToList())
             {
-                Remove(ropes[gone]);
+                Remove(gone);
                 ropes.Remove(gone);
             }
             foreach (var animal in tied)
-                if (!ropes.ContainsKey(animal)) ropes[animal] = MakeRope(animal);
+                if (!ropes.Any(r => r.Animal == animal)) ropes.Add(MakeRope(animal));
         }
 
         private static void Remove(Rope rope)
@@ -179,7 +182,7 @@ namespace PotatoFarmer
 
         private Rope MakeRope(Character animal)
         {
-            var rope = new Rope { Mesh = new Mesh { name = "potato_post_rope" } };
+            var rope = new Rope { Animal = animal, Mesh = new Mesh { name = "potato_post_rope" } };
             rope.Mesh.MarkDynamic();
             rope.Lead = Holder("PotatoPostRope", rope.Mesh);
             var head = Head(animal);
@@ -276,11 +279,10 @@ namespace PotatoFarmer
 
         private void LateUpdate()
         {
-            foreach (var pair in ropes)
+            foreach (var rope in ropes)
             {
-                var animal = pair.Key;
-                var rope = pair.Value;
-                if (!animal || rope?.Mesh == null) continue;
+                var animal = rope.Animal;
+                if (!animal || rope.Mesh == null) continue;
                 Vector3 neck = rope.Neck ? rope.Neck.TransformPoint(rope.LocalCenter) : animal.GetCenterPoint() + Vector3.up * (animal.GetRadius() * 0.4f);
                 Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
                 Vector3 end = neck;
@@ -319,7 +321,7 @@ namespace PotatoFarmer
 
         private void OnDestroy()
         {
-            foreach (var rope in ropes.Values) Remove(rope);
+            foreach (var rope in ropes) Remove(rope);
             ropes.Clear();
         }
 

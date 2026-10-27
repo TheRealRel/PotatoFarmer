@@ -22,7 +22,7 @@ namespace PotatoFarmer
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Id = "potato.farmer", Version = "1.3.1";
+        public const string Id = "potato.farmer", Version = "1.3.2";
         // Saved in worlds: never rename.
         public const string TroughPiece = "piece_potato_trough";
         public const string TroughName = "$piece_potato_trough";
