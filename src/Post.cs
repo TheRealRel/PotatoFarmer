@@ -100,8 +100,9 @@ namespace PotatoFarmer
         }
 
         // ------------------------------------------------------------------ ropes
-        // Each tied animal gets a real rope: a round tube built along a sagging curve every frame, from the post's nearer
-        // ring to a rope ring around the animal's neck. The ring hangs on the neck bone, so it moves with the animation.
+        // Each tied animal gets a real rope: a round tube built along a sagging curve every frame, from the post's ring
+        // nearest the animal when it was tied to a rope ring around the animal's neck. The ring hangs on the neck bone, so
+        // it moves with the animation.
         private const float RopeRadius = 0.028f;
         private const int Sides = 12, Segments = 12;
         // Three strands twisting round: one full turn of the lay every Twist metres, shaped into the tube and the texture.
@@ -109,6 +110,7 @@ namespace PotatoFarmer
         private sealed class Rope
         {
             public Character Animal;
+            public int Ring;   // the ring it's tied to, nearest the animal when tied; a tied rope stays on its ring
             public GameObject Lead, Collar;
             public Mesh Mesh, CollarMesh;
             public Transform Neck;
@@ -183,6 +185,8 @@ namespace PotatoFarmer
         private Rope MakeRope(Character animal)
         {
             var rope = new Rope { Animal = animal, Mesh = new Mesh { name = "potato_post_rope" } };
+            var at = animal.transform.position;
+            rope.Ring = (transform.TransformPoint(Rings[0] * Size) - at).sqrMagnitude <= (transform.TransformPoint(Rings[1] * Size) - at).sqrMagnitude ? 0 : 1;
             rope.Mesh.MarkDynamic();
             rope.Lead = Holder("PotatoPostRope", rope.Mesh);
             var head = Head(animal);
@@ -284,7 +288,7 @@ namespace PotatoFarmer
                 var animal = rope.Animal;
                 if (!animal || rope.Mesh == null) continue;
                 Vector3 neck = rope.Neck ? rope.Neck.TransformPoint(rope.LocalCenter) : animal.GetCenterPoint() + Vector3.up * (animal.GetRadius() * 0.4f);
-                Vector3 start = Rings.Select(r => transform.TransformPoint(r * Size)).OrderBy(r => (r - neck).sqrMagnitude).First();
+                Vector3 start = transform.TransformPoint(Rings[rope.Ring] * Size);
                 Vector3 end = neck;
                 if (rope.Neck && rope.CollarMesh != null)
                 {
