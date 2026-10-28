@@ -2,6 +2,7 @@
 
 ## 1.3.2
 - No more warning about Sleipnir's Post in the game log at startup.
+- A tied animal's rope stays on the post's ring it was tied to, instead of switching rings as the animal moves around.
 
 ## 1.3.1
 - Settings in one section instead of five, each starting with its piece ("Trough capacity", "Post rope length"), so Configuration Manager is quicker to look through. Your settings, and the server's, move over on the first start.
