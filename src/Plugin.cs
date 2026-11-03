@@ -22,7 +22,7 @@ namespace PotatoFarmer
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Id = "potato.farmer", Version = "1.3.2";
+        public const string Id = "potato.farmer", Version = "1.4.0";
         // Saved in worlds: never rename.
         public const string TroughPiece = "piece_potato_trough";
         public const string TroughName = "$piece_potato_trough";
@@ -39,6 +39,9 @@ namespace PotatoFarmer
         public const string PostPiece = "piece_potato_post";
         public const string PostName = "$piece_potato_post";
         private const string PostDescription = "$piece_potato_post_description";
+        public const string RackPiece = "piece_potato_rack";
+        public const string RackName = "$piece_potato_rack";
+        private const string RackDescription = "$piece_potato_rack_description";
 
         // One section, so Configuration Manager stays short; each setting starts with the piece it belongs to.
         // No apostrophes or = \ " [ ] in names: BepInEx rejects them.
@@ -46,9 +49,9 @@ namespace PotatoFarmer
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<int> TroughCapacity, RoostCapacity, RoostFlock, CaskBatches, PostAnimals;
-        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix, LickEnabled, PostEnabled;
-        internal static ConfigEntry<float> TroughReach, RoostReach, LickReach, LickFedTime, PostRope;
-        private static Piece troughPiece, roostPiece, caskPiece, lickPiece, postPiece;
+        internal static ConfigEntry<bool> TroughEnabled, TroughShowFood, RoostEnabled, CaskEnabled, CaskMix, LickEnabled, PostEnabled, RackEnabled;
+        internal static ConfigEntry<float> TroughReach, RoostReach, LickReach, LickFedTime, PostRope, RackTime;
+        private static Piece troughPiece, roostPiece, caskPiece, lickPiece, postPiece, rackPiece;
 
         private void Awake()
         {
@@ -98,6 +101,12 @@ namespace PotatoFarmer
             PostRope = Config.Bind(Section, "Post rope length", 4f,
                 new ConfigDescription("How far (metres) a tied animal can wander from beside the post. Set by the server.", new AcceptableValueRange<float>(2f, 10f), serverSet));
             PostEnabled.SettingChanged += (_, __) => { if (postPiece) postPiece.m_enabled = PostEnabled.Value; };
+            RackEnabled = Config.Bind(Section, "Rack", true,
+                new ConfigDescription("Show the jerky drying rack on the hammer. Racks already built stay and keep working. Set by the server.", null, serverSet));
+            RackTime = Config.Bind(Section, "Rack drying time", 20f,
+                new ConfigDescription("How many minutes one hook takes to dry its meat and honey into two jerky. All nine hooks dry at the same time. Set by the server.",
+                    new AcceptableValueRange<float>(1f, 120f), serverSet));
+            RackEnabled.SettingChanged += (_, __) => { if (rackPiece) rackPiece.m_enabled = RackEnabled.Value; };
             // 1.3.0 and before had a section per piece ("1 - Trough" / "Enabled"...).
             ConfigMove.Apply(Config, before, new Dictionary<string, ConfigEntryBase>
             {
@@ -121,6 +130,7 @@ namespace PotatoFarmer
             });
             new Harmony(Id).PatchAll(typeof(Plugin).Assembly);
             PrefabManager.OnVanillaPrefabsAvailable += AddPieces;
+            ItemManager.OnItemsRegistered += Rack.LogPairs;
         }
 
         private static void AddPieces()
@@ -138,6 +148,8 @@ namespace PotatoFarmer
                 { PostName.Substring(1), "Sleipnir's Post" },
                 { PostDescription.Substring(1), "A hitching post carved for Sleipnir, Odin's eight-legged horse. Bring a tamed animal that follows you and tie it here, and it stays put instead of wandering off." },
                 { LickDescription.Substring(1), "A block of salt on carved stone, for Auðhumla, the first cow, who licked the first god out of the salt ice. Tamed animals nearby stay fed longer between meals." },
+                { RackName.Substring(1), "Læraðr's Rack" },
+                { RackDescription.Substring(1), "A drying rack of Yggdrasil wood, named for Læraðr, the tree on Valhalla's roof. Hang raw meat with honey on its nine hooks and it slowly dries into jerky." },
             });
             try { AddTrough(); }
             catch (Exception e) { Log.LogError("Couldn't add the feeding trough: " + e); }
@@ -149,6 +161,10 @@ namespace PotatoFarmer
             catch (Exception e) { Log.LogError("Couldn't add the salt lick: " + e); }
             try { AddPost(); }
             catch (Exception e) { Log.LogError("Couldn't add the hitching post: " + e); }
+            try { Jerky.AddAll(); }
+            catch (Exception e) { Log.LogError("Couldn't add the jerkies: " + e); }
+            try { AddRack(); }
+            catch (Exception e) { Log.LogError("Couldn't add the drying rack: " + e); }
         }
 
         private static void AddTrough()
@@ -348,6 +364,46 @@ namespace PotatoFarmer
             if (!GUIManager.IsHeadless()) postPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(20f, 10f));
             PieceManager.Instance.AddPiece(piece);
             Log.LogInfo("Hitching post added to the hammer.");
+        }
+
+        private static void AddRack()
+        {
+            var piece = new CustomPiece(RackPiece, "piece_table", new PieceConfig
+            {
+                Name = RackName,
+                Description = RackDescription,
+                PieceTable = "Hammer",
+                Category = "Crafting",
+                CraftingStation = "forge",
+                Requirements = new[] { new RequirementConfig("YggdrasilWood", 10, 0, true), new RequirementConfig("Copper", 4, 0, true), new RequirementConfig("Iron", 2, 0, true) },
+            });
+            if (!piece.PiecePrefab)
+            {
+                Log.LogWarning("The wooden table to build the drying rack from wasn't found; no drying rack this session.");
+                return;
+            }
+            var mesh = Assets.LoadMesh("rack", Rack.Size);
+            if (!mesh) return;
+            // Yggdrasil wood with iron hooks and dark metal bands, like the trough's wood and metal.
+            var look = new PieceLook("rack", 1f, 0.6f);
+            var prefab = piece.PiecePrefab;
+            Rebuild(prefab, mesh, look.Material);
+            // The four legs, the three crossbars and the two end beams (measured from the model file).
+            foreach (float x in new[] { -0.825f, 0.825f })
+                foreach (float z in new[] { -0.447f, 0.447f })
+                    AddBox(prefab, "Leg", new Vector3(x, 0.55f, z), new Vector3(0.18f, 1.1f, 0.19f), Rack.Size);
+            foreach (float z in new[] { -0.462f, -0.007f, 0.464f })
+                AddBox(prefab, "Bar", new Vector3(0f, 0.975f, z), new Vector3(1.5f, 0.2f, 0.12f), Rack.Size);
+            foreach (float x in new[] { -0.8f, 0.8f })
+                AddBox(prefab, "Beam", new Vector3(x, 1.03f, 0f), new Vector3(0.19f, 0.15f, 1.08f), Rack.Size);
+            var wear = prefab.GetComponent<WearNTear>();
+            wear.m_materialType = WearNTear.MaterialType.Wood;
+            prefab.AddComponent<Rack>();
+            rackPiece = piece.Piece;
+            rackPiece.m_enabled = RackEnabled.Value;
+            if (!GUIManager.IsHeadless()) rackPiece.m_icon = RenderManager.Instance.Render(prefab, IconView(25f, 20f));
+            PieceManager.Instance.AddPiece(piece);
+            Log.LogInfo("Drying rack added to the hammer.");
         }
 
         // A vanilla piece supplies the basics (building, wear, hit and break effects); its looks and colliders are
