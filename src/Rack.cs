@@ -18,7 +18,13 @@ namespace PotatoFarmer
         // The nine hook tips in the model file (measured from rack.mesh: the hooks' metal, lowest points), three on
         // each crossbar. The crossbars run along x.
         private static readonly float[] HookX = { -0.307f, 0.100f, 0.448f }, HookZ = { -0.47f, 0f, 0.475f };
-        private const float HookY = 0.825f, SpaceAlong = 0.41f, SpaceAcross = 0.47f, HoneyScale = 0.55f;
+        // Pierce: an item's top sits this far above the hook's lowest point (model units), so the hook goes into it
+        // rather than the item touching it at one point. Along the bar a hanging item may overlap its neighbours a
+        // little (5 %); across it stays in its row. The honeycomb hangs 30 cm and the meat's top tucks behind the lower
+        // half of it. Jerkies are drawn 12 % bigger than the item.
+        private const float HookY = 0.825f, Pierce = 0.035f, SpaceAlong = 0.41f, SpaceAcross = 0.47f, Overlap = 1.05f;
+        private const float HoneyHeight = 0.30f, HoneyTuck = 0.5f, JerkyScale = 1.12f;
+        private static readonly Dictionary<string, Vector3[]> modelPoints = new Dictionary<string, Vector3[]>();
 
         private static readonly Dictionary<string, Bounds> modelBounds = new Dictionary<string, Bounds>();
         private static Dictionary<string, KeyValuePair<string, int>> jerkyFor;
@@ -309,7 +315,7 @@ namespace PotatoFarmer
 
         // ------------------------------------------------------------------ what hangs on the hooks (looks only)
 
-        private Vector3 HookLocal(int hook) => new Vector3(HookX[hook % 3], HookY + 0.01f, HookZ[hook / 3]) * Size;
+        private Vector3 HookLocal(int hook) => new Vector3(HookX[hook % 3], HookY + Pierce, HookZ[hook / 3]) * Size;
 
         private Vector3 HookPoint(int hook) => transform.TransformPoint(HookLocal(hook));
 
@@ -343,37 +349,59 @@ namespace PotatoFarmer
             holder.transform.SetParent(transform, false);
             hookModels[index] = holder;
             var at = HookLocal(index);
-            float along = SpaceAlong * Size * 1.3f, across = SpaceAcross * Size, down = HookY * Size - 0.05f;
+            float along = SpaceAlong * Size * Overlap, across = SpaceAcross * Size, down = (HookY + Pierce) * Size - 0.05f;
             if (!Ready(hook))
             {
-                var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
-                if (!meat) return;
-                var fit = Hanging.Place(meatBounds, at, along, across, down, true, Hanging.SignFor(hook.Meat));
-                Apply(meat, fit, 1f, at);
-                // The honey hangs on the same hook, smaller, flat against the meat's outer side.
+                // The honeycomb goes on the hook first; the meat hangs from the hook right under it, its top tucked
+                // behind the comb's lower half, so both hang from the hook and nothing floats.
+                float drop = 0f;
                 var honey = Copy("Honey", holder.transform, out var honeyBounds);
                 if (honey)
                 {
                     var honeyFit = Hanging.Place(honeyBounds, at, along, across, down, true, Hanging.SignFor("Honey"));
-                    int outward = at.z >= 0f ? 1 : -1;
-                    float lowZ = at.z + (honeyFit.Low.z - at.z) * HoneyScale, highZ = at.z + (honeyFit.High.z - at.z) * HoneyScale;
-                    float face = outward > 0 ? fit.High.z : fit.Low.z;
-                    float shift = face - (outward > 0 ? lowZ : highZ) - outward * 0.01f * Size;
-                    Apply(honey, honeyFit, HoneyScale, at);
-                    honey.transform.localPosition += new Vector3(0f, 0f, shift);
+                    float shrink = HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f);
+                    Apply(honey, honeyFit, shrink, at);
+                    drop = HoneyHeight * HoneyTuck;
+                }
+                var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
+                if (meat)
+                {
+                    var below = at - new Vector3(0f, drop, 0f);
+                    Apply(meat, Hanging.Place(meatBounds, below, along, across, down - drop, true, Hanging.SignFor(hook.Meat)), 1f, below);
                 }
             }
             else if (JerkyFor().TryGetValue(hook.Meat, out var jerky))
             {
-                // Two jerkies side by side on the hook, barely touching.
+                // Two jerkies on the one hook, a little apart and one behind the other, their tops on the hook. Our
+                // crossed-strip jerkies are turned in their own face so the strips read as an X, hung by the top corner.
+                bool turned = Jerky.Kinds.Any(k => k.Prefab == jerky.Key && k.Shape == "deer");
                 for (int k = 0; k < 2; k++)
                 {
                     var copy = Copy(jerky.Key, holder.transform, out var bounds);
                     if (!copy) break;
                     var fit = Hanging.Place(bounds, at, along / 2f, across, down, false, Hanging.SignFor(jerky.Key));
-                    Apply(copy, fit, 1f, at);
                     float width = fit.High.x - fit.Low.x;
-                    copy.transform.localPosition += new Vector3((k == 0 ? -0.5f : 0.5f) * width * 0.92f, 0f, (k - 0.5f) * 0.01f * Size);
+                    if (turned && Points(jerky.Key, copy) is Vector3[] points)
+                    {
+                        var turn = Quaternion.Euler(0f, 0f, k == 0 ? 45f : 35f);
+                        var rotation = turn * fit.Rotation;
+                        float scale = fit.Scale * JerkyScale;
+                        var start = turn * (fit.Position * JerkyScale);
+                        var top = new Vector3(0f, float.NegativeInfinity, 0f);
+                        foreach (var point in points)
+                        {
+                            var placed = start + rotation * (point * scale);
+                            if (placed.y > top.y) top = placed;
+                        }
+                        copy.transform.localRotation = rotation;
+                        copy.transform.localScale = copy.transform.localScale * scale;
+                        copy.transform.localPosition = start + at - top + new Vector3(k - 0.5f, 0f, k - 0.5f) * 0.04f * Size;
+                    }
+                    else
+                    {
+                        Apply(copy, fit, JerkyScale, at);
+                        copy.transform.localPosition += new Vector3((k == 0 ? -1f : 1f) * width * 0.12f, -k * 0.02f * Size, (k - 0.5f) * 0.04f * Size);
+                    }
                 }
             }
             holder.SetActive(true);
@@ -385,6 +413,34 @@ namespace PotatoFarmer
             copy.transform.localRotation = fit.Rotation;
             copy.transform.localScale = copy.transform.localScale * fit.Scale * extra;
             copy.transform.localPosition = hook + (fit.Position - hook) * extra;
+        }
+
+        // The model's vertices in its own space times its own scale (for our own meshes, which can be read; the game's
+        // can't while it runs). Null when unreadable.
+        private static Vector3[] Points(string prefab, GameObject copy)
+        {
+            if (modelPoints.TryGetValue(prefab, out var cached)) return cached;
+            var list = new List<Vector3>();
+            var scale = copy.transform.localScale;
+            var toCopy = copy.transform.worldToLocalMatrix;
+            foreach (var filter in copy.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!IsShown(filter.transform, copy.transform)) continue;
+                var mesh = filter.sharedMesh;
+                if (!mesh || !mesh.isReadable) { list = null; break; }
+                var matrix = toCopy * filter.transform.localToWorldMatrix;
+                foreach (var vertex in mesh.vertices) list.Add(Vector3.Scale(matrix.MultiplyPoint3x4(vertex), scale));
+            }
+            var points = list != null && list.Count > 0 ? list.ToArray() : null;
+            modelPoints[prefab] = points;
+            return points;
+        }
+
+        private static bool IsShown(Transform part, Transform root)
+        {
+            for (; part && part != root; part = part.parent)
+                if (!part.gameObject.activeSelf) return false;
+            return true;
         }
 
         // A copy of an item's own model (its "attach", or "model" for items without one such as honey), stripped of
