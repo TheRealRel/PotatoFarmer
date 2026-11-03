@@ -37,6 +37,38 @@ namespace PotatoFarmer
         private const float HookY = 0.825f, Pierce = 0.035f, SpaceAlong = 0.41f, SpaceAcross = 0.47f, Overlap = 1.05f;
         private const float HoneyHeight = 0.30f, JerkyScale = 1.12f;
         private static readonly Dictionary<string, Vector3[]> modelPoints = new Dictionary<string, Vector3[]>();
+        // Where each known item hangs from: the middle of its highest 3 cm, in its own space times its own scale, for
+        // the game's spit way [0] and longest side down [1]. Hung from that point, the hook goes into the item's real
+        // top instead of the top of its box (a rounded or lopsided piece's box top is often off to one side, so it
+        // missed the hook). Measured offline from the items' vertices (the game's meshes can't be read while it
+        // runs); our own jerky meshes are measured at run time. Items not listed hang centred under the hook.
+        private const float TopBand = 0.03f;
+        private static readonly Dictionary<string, Vector3[]> Anchors = new Dictionary<string, Vector3[]>
+        {
+            { "RawMeat", new[] { new Vector3(0.007f, -0.005f, 0.249f), new Vector3(0.007f, -0.005f, 0.249f) } },
+            { "DeerMeat", new[] { new Vector3(-0.044f, 0.011f, 0.075f), new Vector3(-0.044f, 0.011f, 0.075f) } },
+            { "NeckTail", new[] { new Vector3(0.000f, -0.055f, 0.274f), new Vector3(0.000f, -0.055f, 0.274f) } },
+            { "WolfMeat", new[] { new Vector3(-0.046f, 0.035f, 0.480f), new Vector3(-0.046f, 0.035f, 0.480f) } },
+            { "LoxMeat", new[] { new Vector3(-0.014f, 0.026f, 0.305f), new Vector3(-0.014f, 0.026f, 0.305f) } },
+            { "SerpentMeat", new[] { new Vector3(-0.009f, -0.035f, 0.705f), new Vector3(-0.009f, 0.019f, -0.631f) } },
+            { "ChickenMeat", new[] { new Vector3(-0.194f, -0.007f, 0.140f), new Vector3(0.198f, 0.016f, -0.021f) } },
+            { "HareMeat", new[] { new Vector3(0.221f, 0.043f, 0.210f), new Vector3(-0.635f, 0.053f, -0.100f) } },
+            { "BugMeat", new[] { new Vector3(0.286f, 0.111f, 0.123f), new Vector3(0.680f, 0.160f, -0.100f) } },
+            { "AsksvinMeat", new[] { new Vector3(0.000f, 0.078f, 0.335f), new Vector3(0.000f, 0.078f, 0.335f) } },
+            { "VoltureMeat", new[] { new Vector3(0.000f, 0.071f, 0.354f), new Vector3(0.000f, 0.071f, 0.354f) } },
+            { "BoneMawSerpentMeat", new[] { new Vector3(-0.174f, 0.017f, 0.765f), new Vector3(0.000f, -0.019f, -0.664f) } },
+            { "MooseMeat", new[] { new Vector3(0.615f, -0.017f, 0.490f), new Vector3(1.689f, -0.043f, -0.015f) } },
+            { "BjornMeat", new[] { new Vector3(0.129f, -0.032f, 0.087f), new Vector3(0.370f, -0.050f, -0.138f) } },
+            { "BearSteak_TW", new[] { new Vector3(-0.043f, 0.037f, 0.234f), new Vector3(-0.043f, 0.037f, 0.234f) } },
+            { "FoxMeat_TW", new[] { new Vector3(-0.021f, 0.015f, 0.129f), new Vector3(-0.021f, 0.015f, 0.129f) } },
+            { "SharkMeat_TW", new[] { new Vector3(0.047f, -0.007f, 0.144f), new Vector3(0.744f, -0.034f, -1.514f) } },
+            { "rae_HorseMeat", new[] { new Vector3(-0.044f, 0.011f, 0.075f), new Vector3(-0.044f, 0.011f, 0.075f) } },
+            { "Honey", new[] { new Vector3(0.065f, -0.005f, 0.294f), new Vector3(0.077f, 0.020f, -0.300f) } },
+            { "BoarJerky", new[] { new Vector3(-0.049f, 0.035f, 0.197f), new Vector3(-0.049f, 0.035f, 0.197f) } },
+            { "WolfJerky", new[] { new Vector3(-0.053f, 0.041f, 0.268f), new Vector3(0.029f, 0.009f, -0.244f) } },
+            { "BearJerky_TW", new[] { new Vector3(-0.049f, 0.035f, 0.197f), new Vector3(-0.049f, 0.035f, 0.197f) } },
+            { "FoxJerky_TW", new[] { new Vector3(0.007f, 0.013f, 0.115f), new Vector3(0.007f, 0.013f, 0.115f) } },
+        };
 
         private static readonly Dictionary<string, Bounds> modelBounds = new Dictionary<string, Bounds>();
         private static Dictionary<string, KeyValuePair<string, int>> jerkyFor;
@@ -370,11 +402,11 @@ namespace PotatoFarmer
                 var honey = Copy("Honey", holder.transform, out var honeyBounds);
                 if (honey)
                 {
-                    var honeyFit = Hanging.Place(honeyBounds, small, along, across, down, true, Hanging.SignFor("Honey"));
+                    var honeyFit = Anchor("Honey", honey, Hanging.Place(honeyBounds, small, along, across, down, true, Hanging.SignFor("Honey")), small);
                     Apply(honey, honeyFit, HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f), small);
                 }
                 var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
-                if (meat) Apply(meat, Hanging.Place(meatBounds, big, along, across, down, true, Hanging.SignFor(hook.Meat)), 1f, big);
+                if (meat) Apply(meat, Anchor(hook.Meat, meat, Hanging.Place(meatBounds, big, along, across, down, true, Hanging.SignFor(hook.Meat)), big), 1f, big);
             }
             else if (JerkyFor().TryGetValue(hook.Meat, out var jerky))
             {
@@ -386,7 +418,7 @@ namespace PotatoFarmer
                     var at = k == 0 ? big : small;
                     var copy = Copy(jerky.Key, holder.transform, out var bounds);
                     if (!copy) break;
-                    var fit = Hanging.Place(bounds, at, along / 2f, across, down, false, Hanging.SignFor(jerky.Key));
+                    var fit = Anchor(jerky.Key, copy, Hanging.Place(bounds, at, along / 2f, across, down, false, Hanging.SignFor(jerky.Key)), at);
                     float width = fit.High.x - fit.Low.x;
                     if (turned && Points(jerky.Key, copy) is Vector3[] points)
                     {
@@ -441,6 +473,36 @@ namespace PotatoFarmer
             var points = list != null && list.Count > 0 ? list.ToArray() : null;
             modelPoints[prefab] = points;
             return points;
+        }
+
+        // Moves a fit so the item's real top (see Anchors) sits on the hook point.
+        private static Hanging.Fit Anchor(string prefab, GameObject copy, Hanging.Fit fit, Vector3 at)
+        {
+            Vector3 top;
+            if (Anchors.TryGetValue(prefab, out var anchors)) top = fit.Rotation * anchors[fit.Game ? 0 : 1];
+            else if (Points(prefab, copy) is Vector3[] points)
+            {
+                float highest = float.NegativeInfinity;
+                foreach (var point in points) highest = Mathf.Max(highest, (fit.Rotation * point).y);
+                var sum = Vector3.zero;
+                int count = 0;
+                foreach (var point in points)
+                {
+                    var turned = fit.Rotation * point;
+                    if (turned.y < highest - TopBand) continue;
+                    sum += turned;
+                    count++;
+                }
+                top = sum / Mathf.Max(count, 1);
+                top.y = highest;
+            }
+            else return fit;
+            var position = at - fit.Scale * top;
+            var shift = position - fit.Position;
+            fit.Position = position;
+            fit.Low += shift;
+            fit.High += shift;
+            return fit;
         }
 
         private static bool IsShown(Transform part, Transform root)

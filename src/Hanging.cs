@@ -20,6 +20,7 @@ namespace PotatoFarmer
             public Quaternion Rotation;
             public float Scale;
             public Vector3 Position, Low, High;
+            public bool Game;   // hung the game's spit way (false: longest side down)
         }
 
         private static readonly Quaternion SpitSlot = new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f);
@@ -66,7 +67,7 @@ namespace PotatoFarmer
             var chosen = options[pick];
             // Top of the item at the hook tip, centred under it.
             var offset = new Vector3(hook.x - (chosen.low.x + chosen.high.x) / 2f, hook.y - chosen.high.y, hook.z - (chosen.low.z + chosen.high.z) / 2f);
-            return new Fit { Rotation = chosen.rotation, Scale = chosen.scale, Position = offset, Low = chosen.low + offset, High = chosen.high + offset };
+            return new Fit { Rotation = chosen.rotation, Scale = chosen.scale, Position = offset, Low = chosen.low + offset, High = chosen.high + offset, Game = chosen.game };
         }
 
         private static bool Better(float scale, float broad, float otherScale, float otherBroad)

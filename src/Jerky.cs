@@ -18,30 +18,37 @@ namespace PotatoFarmer
             // Prefab names are saved in inventories and chests: never rename.
             public string Prefab, Meat, Name, Shape, Look, Mod;
             public float Health, Stamina, Regen;
+            public int Level;   // cauldron level for its recipe
         }
 
+        // Cauldron levels (the jerky can also be made at the cauldron, like the game's own: 1 meat + 1 honey -> 2), set
+        // from the game's cauldron recipes for the same meat or the same biome (read 2026-11-03 from c4210710): level 1
+        // Meadows/Black Forest (Boar Jerky, Deer Stew, Minced Meat Sauce, Pulled Bear; Monstrum's Bear Jerky), 2 Serpent
+        // Stew, 3 Wolf Jerky, 4 Plains (Blood Pudding, Fish Wraps), 5 Mistlands and Seeker Aspic, Fiery Svinstew
+        // (Asksvin), Monstrum's Bloodgill Fin Soup, 6 Ashlands (Mashed Meat: Asksvin + Volture), 7 Deep North (every
+        // moose dish).
         // Shapes: four Meshy models, recoloured per meat (assets/jerkyshape_<shape>.mesh, jerky_<look>_d.png).
         internal static readonly Kind[] Kinds =
         {
-            new Kind { Prefab = "PotatoJerky_NeckTail", Meat = "NeckTail", Name = "Neck tail jerky", Shape = "bloodgill", Look = "necktail", Health = 19, Stamina = 19, Regen = 2 },
-            new Kind { Prefab = "PotatoJerky_Deer", Meat = "DeerMeat", Name = "Deer jerky", Shape = "deer", Look = "deer", Health = 26, Stamina = 26, Regen = 2 },
-            new Kind { Prefab = "PotatoJerky_Horse", Meat = "rae_HorseMeat", Name = "Horse jerky", Shape = "deer", Look = "horse", Health = 26, Stamina = 26, Regen = 2, Mod = OdinHorse },
-            new Kind { Prefab = "PotatoJerky_Grizzly", Meat = "BearSteak_TW", Name = "Grizzly jerky", Shape = "lox", Look = "grizzly", Health = 29, Stamina = 29, Regen = 3, Mod = Monstrum },
-            new Kind { Prefab = "PotatoJerky_Bloodgill", Meat = "SharkMeat_TW", Name = "Bloodgill jerky", Shape = "bloodgill", Look = "bloodgill", Health = 30, Stamina = 55, Regen = 3, Mod = Monstrum },
-            new Kind { Prefab = "PotatoJerky_Lox", Meat = "LoxMeat", Name = "Lox jerky", Shape = "lox", Look = "lox", Health = 38, Stamina = 38, Regen = 4 },
-            new Kind { Prefab = "PotatoJerky_Chicken", Meat = "ChickenMeat", Name = "Chicken jerky", Shape = "bloodgill", Look = "chicken", Health = 45, Stamina = 45, Regen = 5 },
-            new Kind { Prefab = "PotatoJerky_Hare", Meat = "HareMeat", Name = "Hare jerky", Shape = "deer", Look = "hare", Health = 45, Stamina = 45, Regen = 5 },
-            new Kind { Prefab = "PotatoJerky_Seeker", Meat = "BugMeat", Name = "Seeker jerky", Shape = "lox", Look = "seeker", Health = 45, Stamina = 45, Regen = 5 },
-            new Kind { Prefab = "PotatoJerky_Serpent", Meat = "SerpentMeat", Name = "Serpent jerky", Shape = "serpent", Look = "serpent", Health = 53, Stamina = 53, Regen = 3 },
-            new Kind { Prefab = "PotatoJerky_Asksvin", Meat = "AsksvinMeat", Name = "Asksvin jerky", Shape = "deer", Look = "asksvin", Health = 53, Stamina = 53, Regen = 6 },
-            new Kind { Prefab = "PotatoJerky_Volture", Meat = "VoltureMeat", Name = "Volture jerky", Shape = "bloodgill", Look = "volture", Health = 53, Stamina = 53, Regen = 6 },
-            new Kind { Prefab = "PotatoJerky_Moose", Meat = "MooseMeat", Name = "Moose jerky", Shape = "lox", Look = "moose", Health = 60, Stamina = 60, Regen = 7 },
-            new Kind { Prefab = "PotatoJerky_BoneMaw", Meat = "BoneMawSerpentMeat", Name = "Bone Maw jerky", Shape = "serpent", Look = "bonemaw", Health = 68, Stamina = 68, Regen = 6 },
+            new Kind { Prefab = "PotatoJerky_NeckTail", Meat = "NeckTail", Name = "Neck tail jerky", Shape = "bloodgill", Look = "necktail", Health = 19, Stamina = 19, Regen = 2, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Deer", Meat = "DeerMeat", Name = "Deer jerky", Shape = "deer", Look = "deer", Health = 26, Stamina = 26, Regen = 2, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Horse", Meat = "rae_HorseMeat", Name = "Horse jerky", Shape = "deer", Look = "horse", Health = 26, Stamina = 26, Regen = 2, Mod = OdinHorse, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Grizzly", Meat = "BearSteak_TW", Name = "Grizzly jerky", Shape = "lox", Look = "grizzly", Health = 29, Stamina = 29, Regen = 3, Mod = Monstrum, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Bloodgill", Meat = "SharkMeat_TW", Name = "Bloodgill jerky", Shape = "bloodgill", Look = "bloodgill", Health = 30, Stamina = 55, Regen = 3, Mod = Monstrum, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Lox", Meat = "LoxMeat", Name = "Lox jerky", Shape = "lox", Look = "lox", Health = 38, Stamina = 38, Regen = 4, Level = 4 },
+            new Kind { Prefab = "PotatoJerky_Chicken", Meat = "ChickenMeat", Name = "Chicken jerky", Shape = "bloodgill", Look = "chicken", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Hare", Meat = "HareMeat", Name = "Hare jerky", Shape = "deer", Look = "hare", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Seeker", Meat = "BugMeat", Name = "Seeker jerky", Shape = "lox", Look = "seeker", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Serpent", Meat = "SerpentMeat", Name = "Serpent jerky", Shape = "serpent", Look = "serpent", Health = 53, Stamina = 53, Regen = 3, Level = 2 },
+            new Kind { Prefab = "PotatoJerky_Asksvin", Meat = "AsksvinMeat", Name = "Asksvin jerky", Shape = "deer", Look = "asksvin", Health = 53, Stamina = 53, Regen = 6, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Volture", Meat = "VoltureMeat", Name = "Volture jerky", Shape = "bloodgill", Look = "volture", Health = 53, Stamina = 53, Regen = 6, Level = 6 },
+            new Kind { Prefab = "PotatoJerky_Moose", Meat = "MooseMeat", Name = "Moose jerky", Shape = "lox", Look = "moose", Health = 60, Stamina = 60, Regen = 7, Level = 7 },
+            new Kind { Prefab = "PotatoJerky_BoneMaw", Meat = "BoneMawSerpentMeat", Name = "Bone Maw jerky", Shape = "serpent", Look = "bonemaw", Health = 68, Stamina = 68, Regen = 6, Level = 6 },
         };
 
         // Jerkies for these mods' meats only exist when the mod is installed (their plugin GUIDs).
         internal const string Monstrum = "Therzie.Monstrum", OdinHorse = "Raelaziel.OdinHorse";
-        private const string Description = "Meat dried slowly with honey on Læraðr's Rack. A light snack that lasts.";
+        private const string Description = "Meat dried with honey, on Læraðr's Rack or in the cauldron. A light snack that lasts.";
 
         internal static readonly Dictionary<string, Kind> ByMeat = new Dictionary<string, Kind>();
 
@@ -56,6 +63,7 @@ namespace PotatoFarmer
                 {
                     if (!Add(kind)) continue;
                     ByMeat[kind.Meat] = kind;
+                    AddRecipe(kind);
                     words["item_" + kind.Prefab.ToLowerInvariant()] = kind.Name;
                     words["item_" + kind.Prefab.ToLowerInvariant() + "_description"] = Description;
                     added++;
@@ -64,6 +72,20 @@ namespace PotatoFarmer
             }
             LocalizationManager.Instance.GetLocalization().AddTranslation("English", words);
             Plugin.Log.LogInfo($"{added} jerkies added for Læraðr's Rack.");
+        }
+
+        // The cauldron recipe, like the game's Boar and Wolf Jerky: 1 raw meat + 1 honey -> 2 jerky.
+        private static void AddRecipe(Kind kind)
+        {
+            ItemManager.Instance.AddRecipe(new CustomRecipe(new Jotunn.Configs.RecipeConfig
+            {
+                Name = "Recipe_" + kind.Prefab,
+                Item = kind.Prefab,
+                Amount = 2,
+                CraftingStation = "piece_cauldron",
+                MinStationLevel = kind.Level,
+                Requirements = new[] { new Jotunn.Configs.RequirementConfig(kind.Meat, 1), new Jotunn.Configs.RequirementConfig("Honey", 1) },
+            }));
         }
 
         private static bool Add(Kind kind)

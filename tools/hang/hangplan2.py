@@ -14,6 +14,8 @@ import json as _json
 HOOKS = _json.load(open('/root/rackview/hooks.json'))
 TWO_LOBES = True
 HONEY_SIDE = False
+TOP_BAND = 0.015   # model units (3 cm at 2x)
+ANCHOR = True
 HONEY_SIZE, HONEY_TUCK = 0.30, 0.5   # metres the comb hangs down; how much of it the meat's top tucks behind
 JERKY_MODE = {}
 
@@ -28,7 +30,7 @@ def _axis_down(a, sign):
     if np.linalg.det(Rm) < 0: Rm[2] *= -1
     M = np.eye(4); M[:3, :3] = Rm; return M
 
-def place(pts, hook, S, room_along, room_across, room_down, turn_ok=True, extra=np.eye(4), game_ok=True):
+def place(pts, hook, S, room_along, room_across, room_down, turn_ok=True, extra=np.eye(4), game_ok=True, anchor=False):
     """Returns matrix (item local -> rack) and the hung bounds. pts: item points in the attach's space.
     Candidates: the game's own spit hanging (two quarter turns), and the longest side hanging straight down with the
     heavier end lowest (two quarter turns). Biggest fit wins; the game's way is kept when it fits within 10 %."""
@@ -52,6 +54,13 @@ def place(pts, hook, S, room_along, room_across, room_down, turn_ok=True, extra=
     pool = game if game else [c for c in cands if c[0] >= best - 0.03]
     s, tag, turn, Rr, lo, hi, _ = max(pool, key=lambda c: (round(c[0], 2), c[6]))
     off = np.array([hook[0] - (lo[0] + hi[0]) / 2, hook[1] - hi[1], hook[2] - (lo[2] + hi[2]) / 2])
+    if anchor:
+        # hang from the item's real top: the middle of its highest 3 cm of vertices goes on the hook
+        w = (Rr[:3, :3] @ pts.T).T * s
+        topz = w[:, 1].max(); near = w[w[:, 1] >= topz - TOP_BAND * S]
+        a = near.mean(0); a[1] = topz
+        off = hook - a
+        lo, hi = w.min(0), w.max(0)
     M = T(off) @ S_(s) @ Rr
     return M, s, f"{tag}{turn}", lo + off, hi + off
 def R_(a, d): return R(a, d)
@@ -71,10 +80,10 @@ def build(S, items, state, honey_scale=0.55):
         small = np.array([H['small']['cup_x'], H['small']['cup_y'] + PIERCE, H['small']['cup_z']]) * S
         if state == 'raw':
             # each hook has two curls: the meat on the bigger one, the honeycomb on the smaller one
-            Mh, sh, _, hlo, hhi = place(pts_item('Honey'), small, S, ra, rc, rd)
+            Mh, sh, _, hlo, hhi = place(pts_item('Honey'), small, S, ra, rc, rd, anchor=ANCHOR)
             hs = HONEY_SIZE / max(hhi[1] - hlo[1], 1e-3)
             Mh = T(small) @ S_(hs) @ T(-small) @ Mh
-            M, s, turn, lo, hi = place(pts_item(meat), big, S, ra, rc, rd)
+            M, s, turn, lo, hi = place(pts_item(meat), big, S, ra, rc, rd, anchor=ANCHOR)
             objs.append({"kind": "item", "src": f"hang/{meat}.json", "m": colmajor(M)})
             objs.append({"kind": "item", "src": "hang/Honey.json", "m": colmajor(Mh)})
             rep.append(f"{meat:20s} scale {s:.2f} {turn:7s}  down {hi[1]-lo[1]:.2f} along {hi[0]-lo[0]:.2f} across {hi[2]-lo[2]:.2f}  bottom {lo[1]:.2f} m")
@@ -86,7 +95,7 @@ def build(S, items, state, honey_scale=0.55):
             wdt = hi[0] - lo[0]
             mode = JERKY_MODE.get(src, 'bundle')
             for k, at in enumerate((big, small)):
-                Mj, s, turn, lo, hi = place(p, at, S, ra / 2, rc, rd, game_ok=False)
+                Mj, s, turn, lo, hi = place(p, at, S, ra / 2, rc, rd, game_ok=False, anchor=ANCHOR)
                 wdt = hi[0] - lo[0]
                 if mode == 'diag':
                     Rz = R('z', 45 if k == 0 else 35)
