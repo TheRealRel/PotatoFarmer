@@ -10,6 +10,9 @@ SLOT = Q((-0.5, 0.5, 0.5, 0.5))
 OVERLAP = 1.05
 PIERCE = 0.035   # model units: an item's top sits this far above the hook's lowest point, so the hook goes into it
 JERKY_SCALE, JERKY_FAN = 1.12, 6.0
+import json as _json
+HOOKS = _json.load(open('/root/rackview/hooks.json'))
+TWO_LOBES = True
 HONEY_SIDE = False
 HONEY_SIZE, HONEY_TUCK = 0.30, 0.5   # metres the comb hangs down; how much of it the meat's top tucks behind
 JERKY_MODE = {}
@@ -63,20 +66,15 @@ def build(S, items, state, honey_scale=0.55):
         hook = np.array([HOOK_X[i % 3] * S, (HOOK_Y + PIERCE) * S, HOOK_Z[i // 3] * S])
         ra, rc, rd = SPACE_X * S * OVERLAP, SPACE_Z * S, (HOOK_Y + PIERCE) * S - 0.05
         out = 1 if hook[2] >= 0 else -1  # honey on the outside of the outer rows
+        H = HOOKS[i]
+        big = np.array([H['big']['cup_x'], H['big']['cup_y'] + PIERCE, H['big']['cup_z']]) * S
+        small = np.array([H['small']['cup_x'], H['small']['cup_y'] + PIERCE, H['small']['cup_z']]) * S
         if state == 'raw':
-            # The honeycomb goes on the hook first; the meat hangs from the hook right under it, its top tucked behind
-            # the comb's lower part. Nothing hangs off the hook on its own.
-            hlo0, hhi0 = pts_item('Honey').min(0), pts_item('Honey').max(0)
-            Mh, sh, _, hlo, hhi = place(pts_item('Honey'), hook, S, ra, rc, rd)
-            hs = HONEY_SIZE / max(hhi[1] - hlo[1], 1e-3)          # the comb's hanging height, fixed
-            Mh = T(hook) @ S_(hs) @ T(-hook) @ Mh
-            hlo = hook + (hlo - hook) * hs; hhi = hook + (hhi - hook) * hs
-            drop = (hhi[1] - hlo[1]) * HONEY_TUCK
-            mhook = hook - np.array([0, drop, 0])
-            M, s, turn, lo, hi = place(pts_item(meat), mhook, S, ra, rc, rd - drop)
-            # the comb sits just in front of the meat's top (outer side), centred on the hook along the bar
-            dz = 0.0  # on the hook itself: its lower half goes into the meat's top
-            Mh = T([0, 0, dz]) @ Mh
+            # each hook has two curls: the meat on the bigger one, the honeycomb on the smaller one
+            Mh, sh, _, hlo, hhi = place(pts_item('Honey'), small, S, ra, rc, rd)
+            hs = HONEY_SIZE / max(hhi[1] - hlo[1], 1e-3)
+            Mh = T(small) @ S_(hs) @ T(-small) @ Mh
+            M, s, turn, lo, hi = place(pts_item(meat), big, S, ra, rc, rd)
             objs.append({"kind": "item", "src": f"hang/{meat}.json", "m": colmajor(M)})
             objs.append({"kind": "item", "src": "hang/Honey.json", "m": colmajor(Mh)})
             rep.append(f"{meat:20s} scale {s:.2f} {turn:7s}  down {hi[1]-lo[1]:.2f} along {hi[0]-lo[0]:.2f} across {hi[2]-lo[2]:.2f}  bottom {lo[1]:.2f} m")
@@ -87,21 +85,18 @@ def build(S, items, state, honey_scale=0.55):
             M, s, turn, lo, hi = place(p, hook, S, ra / 2, rc, rd, game_ok=False)
             wdt = hi[0] - lo[0]
             mode = JERKY_MODE.get(src, 'bundle')
-            for k, side in enumerate((-1, 1)):
-                if mode == 'fan':
-                    Mk = T(hook) @ R('z', side * JERKY_FAN) @ S_(JERKY_SCALE) @ T(-hook) @ M
-                    Mk = T([side * wdt * 0.18, 0, (k - 0.5) * 0.03 * S]) @ Mk
-                elif mode == 'bundle':
-                    Mk = T(hook) @ S_(JERKY_SCALE) @ T(-hook) @ M
-                    Mk = T([side * wdt * 0.12, -k * 0.02 * S, (k - 0.5) * 0.04 * S]) @ Mk
-                elif mode == 'diag':
-                    # turned 45 degrees in its own face (crossed strips read as an X), hung by its top point: the
-                    # highest vertex after turning goes on the hook
+            for k, at in enumerate((big, small)):
+                Mj, s, turn, lo, hi = place(p, at, S, ra / 2, rc, rd, game_ok=False)
+                wdt = hi[0] - lo[0]
+                if mode == 'diag':
                     Rz = R('z', 45 if k == 0 else 35)
-                    Mk = Rz @ S_(JERKY_SCALE) @ M
+                    Mk = Rz @ S_(JERKY_SCALE) @ Mj
                     w = (Mk[:3, :3] @ p.T).T + Mk[:3, 3]
                     top = w[np.argmax(w[:, 1])]
-                    Mk = T(hook - top + np.array([(k - 0.5) * 0.04 * S, 0, (k - 0.5) * 0.04 * S])) @ Mk
+                    Mk = T(at - top + np.array([(k - 0.5) * 0.04 * S, 0, 0])) @ Mk
+                else:
+                    Mk = T(at) @ S_(JERKY_SCALE) @ T(-at) @ Mj
+                    Mk = T([(k - 0.5) * 2 * wdt * 0.12, 0, 0]) @ Mk
                 o = {"kind": kind, "src": src, "m": colmajor(Mk)}
                 if tex: o["tex"] = tex
                 objs.append(o)

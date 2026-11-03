@@ -15,15 +15,27 @@ namespace PotatoFarmer
         // The model file is 1.9 m long; drawn twice that (3.8 m long, 2.2 m tall, hooks 1.65 m up), so the game's big
         // meats (serpent, Bone Maw, volture) hang at full size like on the game's iron spit.
         internal const float Size = 2f;
-        // The nine hook tips in the model file (measured from rack.mesh: the hooks' metal, lowest points), three on
-        // each crossbar. The crossbars run along x.
-        private static readonly float[] HookX = { -0.307f, 0.100f, 0.448f }, HookZ = { -0.47f, 0f, 0.475f };
-        // Pierce: an item's top sits this far above the hook's lowest point (model units), so the hook goes into it
+        // The nine hooks in the model file, three on each crossbar (the crossbars run along x). Each hook rings its bar
+        // and ends in two curls, one bigger than the other, pointing across the bar: the meat hangs from the bigger
+        // curl, the honeycomb from the smaller. Each curl's lowest inside point, measured from rack.mesh's hook metal
+        // (front row then middle then back, each left to right).
+        private static readonly Vector3[] BigCurl =
+        {
+            new Vector3(-0.304f, 0.828f, -0.486f), new Vector3(0.110f, 0.838f, -0.509f), new Vector3(0.441f, 0.827f, -0.495f),
+            new Vector3(-0.307f, 0.833f, -0.036f), new Vector3(0.085f, 0.821f, 0.017f), new Vector3(0.458f, 0.830f, 0.020f),
+            new Vector3(-0.296f, 0.824f, 0.494f), new Vector3(0.096f, 0.825f, 0.493f), new Vector3(0.440f, 0.826f, 0.495f),
+        };
+        private static readonly Vector3[] SmallCurl =
+        {
+            new Vector3(-0.315f, 0.832f, -0.433f), new Vector3(0.098f, 0.830f, -0.440f), new Vector3(0.443f, 0.831f, -0.440f),
+            new Vector3(-0.300f, 0.836f, 0.027f), new Vector3(0.101f, 0.827f, -0.031f), new Vector3(0.459f, 0.838f, -0.041f),
+            new Vector3(-0.317f, 0.837f, 0.426f), new Vector3(0.098f, 0.831f, 0.440f), new Vector3(0.438f, 0.835f, 0.434f),
+        };
+        // Pierce: an item's top sits this far above its curl's lowest point (model units), so the curl goes into it
         // rather than the item touching it at one point. Along the bar a hanging item may overlap its neighbours a
-        // little (5 %); across it stays in its row. The honeycomb hangs 30 cm and the meat's top tucks behind the lower
-        // half of it. Jerkies are drawn 12 % bigger than the item.
+        // little (5 %); across it stays in its row. The honeycomb hangs 30 cm. Jerkies are drawn 12 % bigger.
         private const float HookY = 0.825f, Pierce = 0.035f, SpaceAlong = 0.41f, SpaceAcross = 0.47f, Overlap = 1.05f;
-        private const float HoneyHeight = 0.30f, HoneyTuck = 0.5f, JerkyScale = 1.12f;
+        private const float HoneyHeight = 0.30f, JerkyScale = 1.12f;
         private static readonly Dictionary<string, Vector3[]> modelPoints = new Dictionary<string, Vector3[]>();
 
         private static readonly Dictionary<string, Bounds> modelBounds = new Dictionary<string, Bounds>();
@@ -315,7 +327,9 @@ namespace PotatoFarmer
 
         // ------------------------------------------------------------------ what hangs on the hooks (looks only)
 
-        private Vector3 HookLocal(int hook) => new Vector3(HookX[hook % 3], HookY + Pierce, HookZ[hook / 3]) * Size;
+        private static Vector3 Curl(Vector3[] curls, int hook) => (curls[hook] + new Vector3(0f, Pierce, 0f)) * Size;
+
+        private Vector3 HookLocal(int hook) => Curl(BigCurl, hook);
 
         private Vector3 HookPoint(int hook) => transform.TransformPoint(HookLocal(hook));
 
@@ -348,35 +362,28 @@ namespace PotatoFarmer
             holder.SetActive(false);
             holder.transform.SetParent(transform, false);
             hookModels[index] = holder;
-            var at = HookLocal(index);
+            Vector3 big = Curl(BigCurl, index), small = Curl(SmallCurl, index);
             float along = SpaceAlong * Size * Overlap, across = SpaceAcross * Size, down = (HookY + Pierce) * Size - 0.05f;
             if (!Ready(hook))
             {
-                // The honeycomb goes on the hook first; the meat hangs from the hook right under it, its top tucked
-                // behind the comb's lower half, so both hang from the hook and nothing floats.
-                float drop = 0f;
+                // The meat on the bigger curl, the honeycomb on the smaller one.
                 var honey = Copy("Honey", holder.transform, out var honeyBounds);
                 if (honey)
                 {
-                    var honeyFit = Hanging.Place(honeyBounds, at, along, across, down, true, Hanging.SignFor("Honey"));
-                    float shrink = HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f);
-                    Apply(honey, honeyFit, shrink, at);
-                    drop = HoneyHeight * HoneyTuck;
+                    var honeyFit = Hanging.Place(honeyBounds, small, along, across, down, true, Hanging.SignFor("Honey"));
+                    Apply(honey, honeyFit, HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f), small);
                 }
                 var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
-                if (meat)
-                {
-                    var below = at - new Vector3(0f, drop, 0f);
-                    Apply(meat, Hanging.Place(meatBounds, below, along, across, down - drop, true, Hanging.SignFor(hook.Meat)), 1f, below);
-                }
+                if (meat) Apply(meat, Hanging.Place(meatBounds, big, along, across, down, true, Hanging.SignFor(hook.Meat)), 1f, big);
             }
             else if (JerkyFor().TryGetValue(hook.Meat, out var jerky))
             {
-                // Two jerkies on the one hook, a little apart and one behind the other, their tops on the hook. Our
-                // crossed-strip jerkies are turned in their own face so the strips read as an X, hung by the top corner.
+                // One jerky on each curl. Our crossed-strip jerkies are turned in their own face so the strips read as
+                // an X, hung by the top corner.
                 bool turned = Jerky.Kinds.Any(k => k.Prefab == jerky.Key && k.Shape == "deer");
                 for (int k = 0; k < 2; k++)
                 {
+                    var at = k == 0 ? big : small;
                     var copy = Copy(jerky.Key, holder.transform, out var bounds);
                     if (!copy) break;
                     var fit = Hanging.Place(bounds, at, along / 2f, across, down, false, Hanging.SignFor(jerky.Key));
@@ -395,12 +402,12 @@ namespace PotatoFarmer
                         }
                         copy.transform.localRotation = rotation;
                         copy.transform.localScale = copy.transform.localScale * scale;
-                        copy.transform.localPosition = start + at - top + new Vector3(k - 0.5f, 0f, k - 0.5f) * 0.04f * Size;
+                        copy.transform.localPosition = start + at - top + new Vector3((k - 0.5f) * 0.04f * Size, 0f, 0f);
                     }
                     else
                     {
                         Apply(copy, fit, JerkyScale, at);
-                        copy.transform.localPosition += new Vector3((k == 0 ? -1f : 1f) * width * 0.12f, -k * 0.02f * Size, (k - 0.5f) * 0.04f * Size);
+                        copy.transform.localPosition += new Vector3((k - 0.5f) * 2f * width * 0.12f, 0f, 0f);
                     }
                 }
             }
