@@ -19,7 +19,7 @@ namespace PotatoFarmer
             public string Prefab, Meat, Name, Shape, Look, Mod;
             public float Health, Stamina, Regen;
             public int Level;   // cauldron level for its recipe
-            public float Size = 1f;   // drawn size against our 42 cm model (see Sizes below)
+            public float Size = 1f;   // drawn size against our 0.42 m model (see Sizes below)
         }
 
         // Cauldron levels (the jerky can also be made at the cauldron, like the game's own: 1 meat + 1 honey -> 2), set
@@ -29,28 +29,26 @@ namespace PotatoFarmer
         // (Asksvin), Monstrum's Bloodgill Fin Soup, 6 Ashlands (Mashed Meat: Asksvin + Volture), 7 Deep North (every
         // moose dish).
         // Shapes: four Meshy models, recoloured per meat (assets/jerkyshape_<shape>.mesh, jerky_<look>_d.png).
-        // Sizes: each jerky is sized by the meat it's made from, by the game's own rule. The game's two jerkies keep the
-        // same share of their meat: Boar Jerky 10.5 % of Raw meat's volume (0.56 of its length), Wolf Jerky 11.2 %
-        // (0.53). Applied to our meats the two measures part ways on odd shapes (length overstates the moose leg and the
-        // hare, volume overstates meats whose jerky shape is thin, like the serpent), so the size is the geometric mean
-        // of the two (tools/hang/meatsize.py; meat_sizes.json, jerky_size.json): 0.24 m Deer and Horse up to 1.1 m
-        // Moose, against the game's Boar Jerky 0.34 m and Wolf Jerky 0.51 m. Icons don't change.
+        // Sizes: our jerky model is 0.42 m, between the game's Boar Jerky (0.34 m) and Wolf Jerky (0.51 m), and every
+        // jerky keeps that size except the huge animals' (the user, 2026-11-03: "reference the existing jerky", "I'm
+        // more concerned with the HUGE animals. Lox and Serpents specifically"; sizes picked from renders next to the
+        // game's jerky): Lox and Moose 0.70 m, Serpent and Bone Maw 0.90 m. Icons don't change.
         internal static readonly Kind[] Kinds =
         {
-            new Kind { Prefab = "PotatoJerky_NeckTail", Meat = "NeckTail", Name = "Neck tail jerky", Shape = "bloodgill", Look = "necktail", Health = 19, Stamina = 19, Regen = 2, Level = 1, Size = 0.80f },
-            new Kind { Prefab = "PotatoJerky_Deer", Meat = "DeerMeat", Name = "Deer jerky", Shape = "deer", Look = "deer", Health = 26, Stamina = 26, Regen = 2, Level = 1, Size = 0.57f },
-            new Kind { Prefab = "PotatoJerky_Horse", Meat = "rae_HorseMeat", Name = "Horse jerky", Shape = "deer", Look = "horse", Health = 26, Stamina = 26, Regen = 2, Mod = OdinHorse, Level = 1, Size = 0.57f },
-            new Kind { Prefab = "PotatoJerky_Grizzly", Meat = "BearSteak_TW", Name = "Grizzly jerky", Shape = "lox", Look = "grizzly", Health = 29, Stamina = 29, Regen = 3, Mod = Monstrum, Level = 1, Size = 0.87f },
-            new Kind { Prefab = "PotatoJerky_Bloodgill", Meat = "SharkMeat_TW", Name = "Bloodgill jerky", Shape = "bloodgill", Look = "bloodgill", Health = 30, Stamina = 55, Regen = 3, Mod = Monstrum, Level = 5, Size = 1.80f },
-            new Kind { Prefab = "PotatoJerky_Lox", Meat = "LoxMeat", Name = "Lox jerky", Shape = "lox", Look = "lox", Health = 38, Stamina = 38, Regen = 4, Level = 4, Size = 1.10f },
-            new Kind { Prefab = "PotatoJerky_Chicken", Meat = "ChickenMeat", Name = "Chicken jerky", Shape = "bloodgill", Look = "chicken", Health = 45, Stamina = 45, Regen = 5, Level = 5, Size = 0.61f },
-            new Kind { Prefab = "PotatoJerky_Hare", Meat = "HareMeat", Name = "Hare jerky", Shape = "deer", Look = "hare", Health = 45, Stamina = 45, Regen = 5, Level = 5, Size = 1.37f },
-            new Kind { Prefab = "PotatoJerky_Seeker", Meat = "BugMeat", Name = "Seeker jerky", Shape = "lox", Look = "seeker", Health = 45, Stamina = 45, Regen = 5, Level = 5, Size = 1.49f },
-            new Kind { Prefab = "PotatoJerky_Serpent", Meat = "SerpentMeat", Name = "Serpent jerky", Shape = "serpent", Look = "serpent", Health = 53, Stamina = 53, Regen = 3, Level = 2, Size = 2.15f },
-            new Kind { Prefab = "PotatoJerky_Asksvin", Meat = "AsksvinMeat", Name = "Asksvin jerky", Shape = "deer", Look = "asksvin", Health = 53, Stamina = 53, Regen = 6, Level = 5, Size = 1.21f },
-            new Kind { Prefab = "PotatoJerky_Volture", Meat = "VoltureMeat", Name = "Volture jerky", Shape = "bloodgill", Look = "volture", Health = 53, Stamina = 53, Regen = 6, Level = 6, Size = 1.78f },
-            new Kind { Prefab = "PotatoJerky_Moose", Meat = "MooseMeat", Name = "Moose jerky", Shape = "lox", Look = "moose", Health = 60, Stamina = 60, Regen = 7, Level = 7, Size = 2.63f },
-            new Kind { Prefab = "PotatoJerky_BoneMaw", Meat = "BoneMawSerpentMeat", Name = "Bone Maw jerky", Shape = "serpent", Look = "bonemaw", Health = 68, Stamina = 68, Regen = 6, Level = 6, Size = 2.18f },
+            new Kind { Prefab = "PotatoJerky_NeckTail", Meat = "NeckTail", Name = "Neck tail jerky", Shape = "bloodgill", Look = "necktail", Health = 19, Stamina = 19, Regen = 2, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Deer", Meat = "DeerMeat", Name = "Deer jerky", Shape = "deer", Look = "deer", Health = 26, Stamina = 26, Regen = 2, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Horse", Meat = "rae_HorseMeat", Name = "Horse jerky", Shape = "deer", Look = "horse", Health = 26, Stamina = 26, Regen = 2, Mod = OdinHorse, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Grizzly", Meat = "BearSteak_TW", Name = "Grizzly jerky", Shape = "lox", Look = "grizzly", Health = 29, Stamina = 29, Regen = 3, Mod = Monstrum, Level = 1 },
+            new Kind { Prefab = "PotatoJerky_Bloodgill", Meat = "SharkMeat_TW", Name = "Bloodgill jerky", Shape = "bloodgill", Look = "bloodgill", Health = 30, Stamina = 55, Regen = 3, Mod = Monstrum, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Lox", Meat = "LoxMeat", Name = "Lox jerky", Shape = "lox", Look = "lox", Health = 38, Stamina = 38, Regen = 4, Level = 4, Size = 1.67f },
+            new Kind { Prefab = "PotatoJerky_Chicken", Meat = "ChickenMeat", Name = "Chicken jerky", Shape = "bloodgill", Look = "chicken", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Hare", Meat = "HareMeat", Name = "Hare jerky", Shape = "deer", Look = "hare", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Seeker", Meat = "BugMeat", Name = "Seeker jerky", Shape = "lox", Look = "seeker", Health = 45, Stamina = 45, Regen = 5, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Serpent", Meat = "SerpentMeat", Name = "Serpent jerky", Shape = "serpent", Look = "serpent", Health = 53, Stamina = 53, Regen = 3, Level = 2, Size = 2.14f },
+            new Kind { Prefab = "PotatoJerky_Asksvin", Meat = "AsksvinMeat", Name = "Asksvin jerky", Shape = "deer", Look = "asksvin", Health = 53, Stamina = 53, Regen = 6, Level = 5 },
+            new Kind { Prefab = "PotatoJerky_Volture", Meat = "VoltureMeat", Name = "Volture jerky", Shape = "bloodgill", Look = "volture", Health = 53, Stamina = 53, Regen = 6, Level = 6 },
+            new Kind { Prefab = "PotatoJerky_Moose", Meat = "MooseMeat", Name = "Moose jerky", Shape = "lox", Look = "moose", Health = 60, Stamina = 60, Regen = 7, Level = 7, Size = 1.67f },
+            new Kind { Prefab = "PotatoJerky_BoneMaw", Meat = "BoneMawSerpentMeat", Name = "Bone Maw jerky", Shape = "serpent", Look = "bonemaw", Health = 68, Stamina = 68, Regen = 6, Level = 6, Size = 2.14f },
         };
 
         // Jerkies for these mods' meats only exist when the mod is installed (their plugin GUIDs).
