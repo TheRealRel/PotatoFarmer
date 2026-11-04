@@ -15,7 +15,7 @@ USE_TILT_ONLY = False
 # Extra height per meat so the lower half of its curl is inside it (raise.py; worst of the nine hooks), metres.
 import json as _json, os as _os
 HONEY_TILT = _json.load(open('/root/rackview/honey_tilt.json')) if _os.path.exists('/root/rackview/honey_tilt.json') else {}
-HONEY_REST = _json.load(open('/root/rackview/honey_rest.json')) if _os.path.exists('/root/rackview/honey_rest.json') else {}
+HONEY_REST = _json.load(open('/root/rackview/honey_rest3.json')) if _os.path.exists('/root/rackview/honey_rest3.json') else {}
 RAISE = _json.load(open('/root/rackview/raise_view.json')) if _os.path.exists('/root/rackview/raise_view.json') else {}
 
 def cands(V, room_along, room_across, room_down):
