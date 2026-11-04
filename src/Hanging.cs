@@ -1,5 +1,6 @@
 // How an item hangs from one of Læraðr's Rack's hooks (looks only). Worked out and checked offline against renders of
 // every meat, honey and jerky on the rack before building (tools/hang/: hangplan2.py is the same rules in Python).
+// Used for the honeycomb, the jerkies and other mods' meats; the known raw meats use Rack.Hangs (hangplan3.py).
 //
 // The game's cooking spits hang meat by putting the item's "attach" model at the spit's slot, turned by the slot's
 // rotation (CookingStation.SetSlotVisual; slot rotation (-0.5, 0.5, 0.5, 0.5) on both the wooden and the iron spit).
@@ -25,11 +26,12 @@ namespace PotatoFarmer
 
         private static readonly Quaternion SpitSlot = new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f);
 
-        // Which end of the longest side hangs lowest for known items (from their vertices, measured offline: the game's
-        // meshes can't be read while it runs). Anything else hangs with its -1 end down.
+        // Which end of the longest side hangs lowest for known items placed here (from their vertices, measured offline:
+        // the game's meshes can't be read while it runs). Anything else hangs with its -1 end down. The known raw meats
+        // don't come here: Rack.Hangs has each one's worked-out hang.
         private static readonly Dictionary<string, int> LongSign = new Dictionary<string, int>
         {
-            { "SerpentMeat", 1 }, { "HareMeat", 1 }, { "BoneMawSerpentMeat", 1 }, { "SharkMeat_TW", 1 }, { "Honey", 1 }, { "WolfJerky", 1 },
+            { "Honey", 1 }, { "WolfJerky", 1 },
         };
 
         internal static int SignFor(string prefab) => LongSign.TryGetValue(prefab, out int sign) ? sign : -1;
