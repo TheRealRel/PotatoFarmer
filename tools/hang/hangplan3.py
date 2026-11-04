@@ -11,9 +11,11 @@ CURL_DEPTH = 0.06      # metres the curl's lowest point sits below the meat's to
 BAL_OK = 0.04         # metres: the centre of mass this close under the hook counts as hanging straight
 PROT_OK = 0.02         # metres: a hang this much or less "below" the item's top counts as hanging by its top
 TRACE = {}
+USE_TILT_ONLY = False
 # Extra height per meat so the lower half of its curl is inside it (raise.py; worst of the nine hooks), metres.
 import json as _json, os as _os
 HONEY_TILT = _json.load(open('/root/rackview/honey_tilt.json')) if _os.path.exists('/root/rackview/honey_tilt.json') else {}
+HONEY_REST = _json.load(open('/root/rackview/honey_rest.json')) if _os.path.exists('/root/rackview/honey_rest.json') else {}
 RAISE = _json.load(open('/root/rackview/raise_view.json')) if _os.path.exists('/root/rackview/raise_view.json') else {}
 
 def cands(V, room_along, room_across, room_down):
@@ -93,6 +95,8 @@ def build(S_, items, state, honey_scale=0.55, force=None):
             K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
             Rt = np.eye(4); Rt[:3, :3] = np.eye(3) + np.sin(theta) * K + (1 - np.cos(theta)) * K @ K
             Mh = T(small) @ Rt @ T(-small) @ Mh
+        if meat in HONEY_REST and not USE_TILT_ONLY:
+            Mh = np.array(HONEY_REST[meat][i]['M'])
         M, c = place_meat(meat, big, S_, ra, rc, rd, force=force)
         objs.append({"kind": "item", "src": f"hang/{meat}.json", "m": colmajor(M)})
         objs.append({"kind": "item", "src": "hang/Honey.json", "m": colmajor(Mh)})
