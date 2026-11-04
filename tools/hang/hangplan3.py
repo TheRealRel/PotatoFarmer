@@ -11,6 +11,9 @@ CURL_DEPTH = 0.06      # metres the curl's lowest point sits below the meat's to
 BAL_OK = 0.04         # metres: the centre of mass this close under the hook counts as hanging straight
 PROT_OK = 0.02         # metres: a hang this much or less "below" the item's top counts as hanging by its top
 TRACE = {}
+# Extra height per meat so the lower half of its curl is inside it (raise.py; worst of the nine hooks), metres.
+import json as _json, os as _os
+RAISE = _json.load(open('/root/rackview/raise_view.json')) if _os.path.exists('/root/rackview/raise_view.json') else {}
 
 def cands(V, room_along, room_across, room_down):
     size0 = V.max(0) - V.min(0); longest = int(np.argmax(size0))
@@ -43,7 +46,7 @@ def place_meat(name, at, RS, ra, rc, rd, force=None):
                                 c['base'] != 'game', c['base'] != 'flip', -round(c['s'], 2), -c['broad']))
     # the hang point (CURL_DEPTH under the column's top) goes on the curl's lowest point
     cup = at - np.array([0, hp.PIERCE * RS, 0])
-    off = cup - c['p'] - np.array([0, CURL_DEPTH - 0.06, 0])
+    off = cup - c['p'] - np.array([0, CURL_DEPTH - 0.06, 0]) + np.array([0, RAISE.get(name, 0.0), 0])
     M = T(off) @ S(c['s']) @ c['R']
     TRACE[name] = {k: (round(float(v), 3) if isinstance(v, (float, np.floating)) else v) for k, v in c.items() if k in ('tag', 's', 'prot', 'ok')}
     TRACE[name]['all'] = [(d['tag'], round(float(d['s']), 2), round(float(d['prot']), 3), round(d['bal'], 3), d['ok']) for d in cs]

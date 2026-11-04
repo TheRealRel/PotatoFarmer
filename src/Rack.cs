@@ -59,7 +59,11 @@ namespace PotatoFarmer
         // the meat's top, the meat is solid there and 3 cm all round it, so the curl sits inside the meat itself and
         // not in a bone, a thin rim or a prong. Picked, in order: nothing (a bone, a fin) rising more than 2 cm above
         // that spot; the meat's weight within 4 cm of straight under the hook, as a hung piece would settle; the
-        // game's way; the biggest. Checked with see-through renders and exact slices through each curl.
+        // game's way; the biggest. Then each meat is raised (test f, after the user's screenshots: the meat still read
+        // as hanging under the hook) until the curl's lower two thirds, up to 8 cm above its bottom, is hidden inside or
+        // behind the meat seen from eye level in front of the row and from low at the rack's end, on all nine hooks
+        // (90 %; narrow pieces thinner than the 16 cm curl get the height that hides the most). Only the curl's tips,
+        // the shank and the ring show above it. Checked with renders from the user's own camera angles.
         // Other mods' meats not listed here hang the older way (Hanging.Place, centred under the curl).
         private struct Hang
         {
@@ -71,24 +75,24 @@ namespace PotatoFarmer
 
         private static readonly Dictionary<string, Hang> Hangs = new Dictionary<string, Hang>
         {
-            { "RawMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.0203f, 0.0023f, -0.2929f)) },   // flip0
-            { "WolfMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.1235f, 0.0397f, -0.4012f)) },   // flip90
-            { "BjornMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(-0.0074f, -0.0447f, -0.2448f)) },   // flip90
-            { "FoxMeat_TW", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.0112f, 0.0121f, -0.2399f)) },   // flip0
-            { "DeerMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(0.0005f, 0.0153f, 0.0066f)) },   // game90
-            { "rae_HorseMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(0.0005f, 0.0153f, 0.0066f)) },   // game90
-            { "AsksvinMeat", new Hang(new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), 1.000f, new Vector3(-0.0016f, 0.0963f, 0.2635f)) },   // game0
-            { "HareMeat", new Hang(new Quaternion(-0.5f, 0.5f, -0.5f, 0.5f), 1.000f, new Vector3(-0.5368f, 0.0160f, -0.1023f)) },   // long90
-            { "SharkMeat_TW", new Hang(new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), 0.723f, new Vector3(0.1043f, -0.0016f, 0.0447f)) },   // game0
-            { "ChickenMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(-0.0138f, 0.0162f, -0.0799f)) },   // flip90
-            { "VoltureMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(-0.1024f, 0.1349f, 0.2850f)) },   // game90
-            { "NeckTail", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.0029f, 0.0270f, -0.3147f)) },   // flip90
-            { "LoxMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.0121f, 0.0238f, -0.4696f)) },   // flip90
-            { "BearSteak_TW", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(-0.0331f, 0.0317f, 0.1635f)) },   // game90
-            { "MooseMeat", new Hang(new Quaternion(-0.5f, -0.5f, 0.5f, 0.5f), 0.608f, new Vector3(1.5825f, -0.0275f, -0.0892f)) },   // long90
-            { "BugMeat", new Hang(new Quaternion(-0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.6166f, 0.1597f, -0.0943f)) },   // long90
-            { "SerpentMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 0.751f, new Vector3(-0.0055f, 0.0228f, -0.5497f)) },   // flip0
-            { "BoneMawSerpentMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 0.981f, new Vector3(0.0025f, -0.0279f, -0.6002f)) },   // flip0
+            { "RawMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.0203f, 0.0023f, -0.2379f)) },   // flip0
+            { "WolfMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.1235f, 0.0397f, -0.2912f)) },   // flip90
+            { "BjornMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(-0.0074f, -0.0447f, -0.2148f)) },   // flip90
+            { "FoxMeat_TW", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.0112f, 0.0121f, -0.1899f)) },   // flip0
+            { "DeerMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(0.0005f, 0.0153f, -0.0234f)) },   // game90
+            { "rae_HorseMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(0.0005f, 0.0153f, -0.0234f)) },   // game90
+            { "AsksvinMeat", new Hang(new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), 1.000f, new Vector3(-0.0016f, 0.0963f, 0.1535f)) },   // game0
+            { "HareMeat", new Hang(new Quaternion(-0.5f, 0.5f, -0.5f, 0.5f), 1.000f, new Vector3(-0.4668f, 0.0160f, -0.1023f)) },   // long90
+            { "SharkMeat_TW", new Hang(new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), 0.723f, new Vector3(0.1043f, -0.0016f, 0.0170f)) },   // game0
+            { "ChickenMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(-0.0138f, 0.0162f, -0.0349f)) },   // flip90
+            { "VoltureMeat", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(-0.1024f, 0.1349f, 0.2350f)) },   // game90
+            { "NeckTail", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.0029f, 0.0270f, -0.2797f)) },   // flip90
+            { "LoxMeat", new Hang(new Quaternion(0.7071068f, 0f, 0f, 0.7071068f), 1.000f, new Vector3(0.0121f, 0.0238f, -0.4296f)) },   // flip90
+            { "BearSteak_TW", new Hang(new Quaternion(0f, 0.7071068f, 0.7071068f, 0f), 1.000f, new Vector3(-0.0331f, 0.0317f, 0.1135f)) },   // game90
+            { "MooseMeat", new Hang(new Quaternion(-0.5f, -0.5f, 0.5f, 0.5f), 0.608f, new Vector3(1.4427f, -0.0275f, -0.0892f)) },   // long90
+            { "BugMeat", new Hang(new Quaternion(-0.5f, -0.5f, 0.5f, 0.5f), 1.000f, new Vector3(0.5916f, 0.1597f, -0.0943f)) },   // long90
+            { "SerpentMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 0.751f, new Vector3(-0.0055f, 0.0228f, -0.4764f)) },   // flip0
+            { "BoneMawSerpentMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 0.981f, new Vector3(0.0025f, -0.0279f, -0.5543f)) },   // flip0
         };
 
         private static readonly Dictionary<string, Bounds> modelBounds = new Dictionary<string, Bounds>();
