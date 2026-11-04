@@ -95,6 +95,30 @@ namespace PotatoFarmer
             { "BoneMawSerpentMeat", new Hang(new Quaternion(0.5f, -0.5f, 0.5f, 0.5f), 0.981f, new Vector3(0.0025f, -0.0279f, -0.5543f)) },   // flip0
         };
 
+        // The honeycomb's swing per meat, about a level axis through its curl. Since test f the bigger meats cover the
+        // smaller curl too, so at eye level from outside the row the comb hung straight was hidden (0 to 12 % showing)
+        // on these. Worked out offline (tools/hang/honeytilt2.py): tried every level axis in 30-degree steps and
+        // 10 to 60 degrees; kept those where at least 30 % of the comb shows from outside the row on every outer hook,
+        // then the least comb inside its meat, then the least swing. Serpent, Bone Maw, Volture and Bjorn still show
+        // only the comb's lower end: on those the meat is wider along the bar than the comb is long. Fox, Deer, Horse,
+        // Chicken and Grizzly already showed (27 % or more) and hang straight.
+        private static readonly Dictionary<string, Quaternion> HoneyTilt = new Dictionary<string, Quaternion>
+        {
+            { "RawMeat", new Quaternion(0.0000000f, 0.0000000f, -0.3420201f, 0.9396926f) },   // 40 degrees, axis 180
+            { "WolfMeat", new Quaternion(0.0000000f, 0.0000000f, 0.5000000f, 0.8660254f) },   // 60 degrees, axis 0
+            { "BjornMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "AsksvinMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "HareMeat", new Quaternion(0.0000000f, 0.0000000f, -0.4226183f, 0.9063078f) },   // 50 degrees, axis 180
+            { "SharkMeat_TW", new Quaternion(-0.2500000f, 0.0000000f, -0.4330127f, 0.8660254f) },   // 60 degrees, axis 210
+            { "VoltureMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "NeckTail", new Quaternion(0.1294095f, 0.0000000f, 0.2241439f, 0.9659258f) },   // 30 degrees, axis 30
+            { "LoxMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "MooseMeat", new Quaternion(0.0000000f, 0.0000000f, 0.5000000f, 0.8660254f) },   // 60 degrees, axis 0
+            { "BugMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "SerpentMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+            { "BoneMawSerpentMeat", new Quaternion(0.0000000f, 0.0000000f, -0.5000000f, 0.8660254f) },   // 60 degrees, axis 180
+        };
+
         private static readonly Dictionary<string, Bounds> modelBounds = new Dictionary<string, Bounds>();
         private static Dictionary<string, KeyValuePair<string, int>> jerkyFor;
         private static ObjectDB jerkyForDb;
@@ -429,6 +453,11 @@ namespace PotatoFarmer
                 {
                     var honeyFit = Anchor("Honey", honey, Hanging.Place(honeyBounds, small, along, across, down, true, Hanging.SignFor("Honey")), small);
                     Apply(honey, honeyFit, HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f), small);
+                    if (HoneyTilt.TryGetValue(hook.Meat, out var tilt))
+                    {
+                        honey.transform.localRotation = tilt * honey.transform.localRotation;
+                        honey.transform.localPosition = small + tilt * (honey.transform.localPosition - small);
+                    }
                 }
                 var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
                 if (meat && Hangs.TryGetValue(hook.Meat, out var hang))

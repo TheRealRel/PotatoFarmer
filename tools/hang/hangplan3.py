@@ -13,6 +13,7 @@ PROT_OK = 0.02         # metres: a hang this much or less "below" the item's top
 TRACE = {}
 # Extra height per meat so the lower half of its curl is inside it (raise.py; worst of the nine hooks), metres.
 import json as _json, os as _os
+HONEY_TILT = _json.load(open('/root/rackview/honey_tilt.json')) if _os.path.exists('/root/rackview/honey_tilt.json') else {}
 RAISE = _json.load(open('/root/rackview/raise_view.json')) if _os.path.exists('/root/rackview/raise_view.json') else {}
 
 def cands(V, room_along, room_across, room_down):
@@ -53,8 +54,25 @@ def place_meat(name, at, RS, ra, rc, rd, force=None):
     return M, c
 
 _orig = hp.build
+JERKY_SIZE = _json.load(open('/root/rackview/jerky_size.json')) if _os.path.exists('/root/rackview/jerky_size.json') else {}
+def _done(S_, items):
+    # each of our jerkies drawn at its own size (Jerky.cs Kind.Size, from its meat): points and matrices scaled
+    out_objs, out_rep = None, []
+    for i, load in enumerate(items):
+        if not load: continue
+        k = JERKY_SIZE.get(load[0], 1.0)
+        one = [None] * len(items); one[i] = load
+        base = hp.pts_ptm; hp.pts_ptm = lambda path, k=k: base(path) * k
+        try: objs, rep = _orig(S_, one, 'done')
+        finally: hp.pts_ptm = base
+        for o in objs[1:]:
+            if o.get('kind') == 'ptm' and o['src'].startswith('jerky/'):
+                M = np.array(o['m']).reshape(4, 4).T; o['m'] = colmajor(M @ S(k))
+        out_objs = objs if out_objs is None else out_objs + objs[1:]
+        out_rep += rep
+    return out_objs or _orig(S_, items, 'done')[0], out_rep
 def build(S_, items, state, honey_scale=0.55, force=None):
-    if state != 'raw': return _orig(S_, items, state)
+    if state != 'raw': return _done(S_, items)
     objs = [{"kind": "ptm", "src": "hang/laradr_rack.mesh", "tex": "hang/laradr_rack_d.png", "m": colmajor(S(S_))}]
     rep = []
     for i, load in enumerate(items):
@@ -67,6 +85,14 @@ def build(S_, items, state, honey_scale=0.55, force=None):
         Mh, sh, _, hlo, hhi = hp.place(hp.pts_item('Honey'), small, S_, ra, rc, rd, anchor=hp.ANCHOR)
         hs = hp.HONEY_SIZE / max(hhi[1] - hlo[1], 1e-3)
         Mh = T(small) @ S(hs) @ T(-small) @ Mh
+        # a comb its meat would hide swings sideways along the bar, pivoting on its curl (honeytilt.py)
+        tilt = HONEY_TILT.get(meat)
+        if tilt:
+            # axis in the floor plane at angle phi from across-the-bar; comb swings about it by theta
+            phi, theta = np.radians(tilt[0]), np.radians(tilt[1]); ax = np.array([np.sin(phi), 0, np.cos(phi)])
+            K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+            Rt = np.eye(4); Rt[:3, :3] = np.eye(3) + np.sin(theta) * K + (1 - np.cos(theta)) * K @ K
+            Mh = T(small) @ Rt @ T(-small) @ Mh
         M, c = place_meat(meat, big, S_, ra, rc, rd, force=force)
         objs.append({"kind": "item", "src": f"hang/{meat}.json", "m": colmajor(M)})
         objs.append({"kind": "item", "src": "hang/Honey.json", "m": colmajor(Mh)})

@@ -1,0 +1,54 @@
+{
+"RawMeat": [
+180,
+40
+],
+"WolfMeat": [
+0,
+60
+],
+"BjornMeat": [
+180,
+60
+],
+"AsksvinMeat": [
+180,
+60
+],
+"HareMeat": [
+180,
+50
+],
+"SharkMeat_TW": [
+210,
+60
+],
+"VoltureMeat": [
+180,
+60
+],
+"NeckTail": [
+30,
+30
+],
+"LoxMeat": [
+180,
+60
+],
+"MooseMeat": [
+0,
+60
+],
+"BugMeat": [
+180,
+60
+],
+"SerpentMeat": [
+180,
+60
+],
+"BoneMawSerpentMeat": [
+180,
+60
+]
+}
