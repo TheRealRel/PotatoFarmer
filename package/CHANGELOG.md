@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+- New: Læraðr's Rack, a jerky drying rack of Yggdrasil wood with nine hooks. Hang raw meat with honey on it, from E or a meat's hotbar key, and after 20 minutes (Rack drying time setting) each hook gives two jerky, like the game's cauldron recipe. The meat and honey hang on the hooks while they dry, then the jerky. Built at a forge from 10 Yggdrasil Wood, 4 Copper and 2 Iron.
+- New: 14 jerkies for the raw meats the game has none for, from neck tail to moose and Bone Maw (Grizzly and Bloodgill with Monstrum, Horse with OdinHorse). Each can also be made at the cauldron, and jerky from lox, moose and serpents is bigger.
+
 ## 1.3.2
 - No more warning about Sleipnir's Post in the game log at startup.
 - A tied animal's rope stays on the post's ring it was tied to, instead of switching rings as the animal moves around.

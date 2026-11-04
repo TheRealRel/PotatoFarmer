@@ -1,4 +1,4 @@
-Farming and animal pieces for Valheim, each with its own model, textured to sit right next to the game's own pieces. Five so far: a feeding trough, a nesting box, a mead cask, a salt lick and a hitching post. The server can switch any of them off, and more will join over time.
+Farming and animal pieces for Valheim, each with its own model, textured to sit right next to the game's own pieces. Six so far: a feeding trough, a nesting box, a mead cask, a salt lick, a hitching post and a jerky drying rack, with fourteen new jerkies to dry on it. The server can switch any of them off, and more will join over time.
 
 ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-trough-3.png)
 
@@ -59,6 +59,39 @@ Nothing is stored in the lick. It stretches the game's own hunger timer while an
 
 Ties are saved with the animal, so they last through restarts and every player sees the same ropes.
 
+![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-rack-above.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-rack-1.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-rack-2.png) ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-rack-3.png)
+
+**Læraðr's Rack** is a drying rack of Yggdrasil wood, named for Læraðr, the tree on Valhalla's roof that the goat Heiðrún and the stag Eikþyrnir graze on. Hang raw meat with honey on its nine hooks, and each hook dries into two jerky. It's the game's own recipe, one meat and one honey for two jerky, with no cauldron to tend and nothing to burn.
+
+![Læraðr's Rack drying raw meat and honey](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/rack-drying.jpg)
+
+- Build it with the hammer under Crafting: 10 Yggdrasil Wood, 4 Copper and 2 Iron, at a forge.
+- E hangs the first raw meat in your inventory that dries here, with a honey. A meat's hotbar key (1-8) hangs as many of it as there are free hooks and honey.
+- All nine hooks dry at once, 20 minutes each. Look at the rack to see what's drying and how long is left, and press E to take the jerky that's ready.
+
+The meat and honey hang on the hooks while they dry, then turn into the jerky, the way the game's cooking spits swap raw meat for cooked. The rack is big enough to hang a serpent steak or a moose leg at full size. Jerky that doesn't fit in your inventory lands at your feet, and if the rack is broken, its jerky drops and the meat still drying comes back with its honey.
+
+Boar and wolf meat dry into the game's own Boar and Wolf Jerky, and with Monstrum, Bjorn's bear meat and Monstrum's fox meat dry into its Bear and Fox Jerky. Every other raw meat gets a jerky of its own, which can also be made at the cauldron (from the level shown), like the game's. Each lasts 30 minutes, and jerky from the biggest animals is bigger to match.
+
+| | Jerky | Health | Stamina | Healing | Cauldron |
+|---|---|---|---|---|---|
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-necktail.png) | Neck tail jerky | 19 | 19 | 2 | 1 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-deer.png) | Deer jerky | 26 | 26 | 2 | 1 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-horse.png) | Horse jerky (with OdinHorse) | 26 | 26 | 2 | 1 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-grizzly.png) | Grizzly jerky (with Monstrum) | 29 | 29 | 3 | 1 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-bloodgill.png) | Bloodgill jerky (with Monstrum) | 30 | 55 | 3 | 5 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-lox.png) | Lox jerky | 38 | 38 | 4 | 4 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-chicken.png) | Chicken jerky | 45 | 45 | 5 | 5 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-hare.png) | Hare jerky | 45 | 45 | 5 | 5 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-seeker.png) | Seeker jerky | 45 | 45 | 5 | 5 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-serpent.png) | Serpent jerky | 53 | 53 | 3 | 2 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-asksvin.png) | Asksvin jerky | 53 | 53 | 6 | 5 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-volture.png) | Volture jerky | 53 | 53 | 6 | 6 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-moose.png) | Moose jerky | 60 | 60 | 7 | 7 |
+| ![](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/icon-jerky-bonemaw.png) | Bone Maw jerky | 68 | 68 | 6 | 6 |
+
+![Lox and serpent jerky hanging on Læraðr's Rack](https://raw.githubusercontent.com/TheRealRel/PotatoFarmer/main/docs/images/rack-jerky.jpg)
+
 Everyone needs the mod, the server included, because the pieces are part of your world. Dedicated servers load it too. It's part of the PotatoServer pack for the Potato Server.
 
 ## Settings
@@ -84,9 +117,37 @@ In `BepInEx/config/potato.farmer.cfg`, or in game with Configuration Manager, al
 | Post | On | Show the hitching post on the hammer. Posts already built stay and keep working. Server. |
 | Post animals | 4 | How many tamed animals one post holds (1-10). Server. |
 | Post rope length | 4 m | How far a tied animal can wander from beside the post (2-10 m). Server. |
+| Rack | On | Show the drying rack on the hammer. Racks already built stay and keep working. Server. |
+| Rack drying time | 20 min | How long one hook takes to dry its meat and honey into two jerky (1-120 min). All nine hooks dry at the same time. Server. |
 
 Bug reports go to [GitHub Issues](https://github.com/TheRealRel/PotatoFarmer/issues), where the source lives too. Questions are welcome on Discord: [relanebeis](https://discord.com/users/373574370267889674).
 
 Needs [BepInExPack Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/) and [Jötunn](https://thunderstore.io/c/valheim/p/ValheimModding/Jotunn/).
 
 The code is under the MIT License. The models, textures, icon and screenshots are © TheRealRel under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): free to share and adapt with credit, but not for commercial use. See LICENSE for the details.
+
+<!--
+      .--------._
+         (`--'       `-.
+          `.______      `.
+       ___________`__     \
+    ,-'           `-.\     |
+   //                \|    |\
+  (`  .'~~~~~---\     \'   | |
+   `-'           )     \   | |
+      ,---------' - -.  `  . '
+    ,'             `%`\`     |
+   /                      \  |
+  /     \-----.         \    `
+ /|  ,_/      '-._            |
+(-'  /           /            `
+,`--<           |        \     \
+\ |  \         /%%             `\
+ |/   \____---'--`%        \     \
+ |    '           `               \
+ |
+  `--.__
+        `---._______
+                    `.
+                      \
+-->
