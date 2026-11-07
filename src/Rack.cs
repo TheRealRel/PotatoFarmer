@@ -448,6 +448,7 @@ namespace PotatoFarmer
                     var honeyFit = Anchor("Honey", honey, Hanging.Place(honeyBounds, small, along, across, down, true, Hanging.SignFor("Honey")), small);
                     Apply(honey, honeyFit, HoneyHeight / Mathf.Max(honeyFit.High.y - honeyFit.Low.y, 0.001f), small);
                 }
+                if (honey) Probe.Honey(hook.Meat, honey); // TEST ONLY
                 var meat = Copy(hook.Meat, holder.transform, out var meatBounds);
                 if (meat && Hangs.TryGetValue(hook.Meat, out var hang))
                 {

@@ -56,6 +56,7 @@ namespace PotatoFarmer
         private void Awake()
         {
             Log = Logger;
+            gameObject.AddComponent<Probe>(); // TEST ONLY
             Assets.Dir = Path.Combine(Path.GetDirectoryName(Info.Location) ?? "", "assets");
             var before = ConfigMove.Read(Config.ConfigFilePath);
             var serverSet = new ConfigurationManagerAttributes { IsAdminOnly = true };
