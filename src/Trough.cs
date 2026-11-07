@@ -371,7 +371,16 @@ namespace PotatoFarmer
             foreach (var light in copy.GetComponentsInChildren<Light>(true)) DestroyImmediate(light);
             foreach (var audio in copy.GetComponentsInChildren<AudioSource>(true)) DestroyImmediate(audio);
             int layer = LayerMask.NameToLayer("piece_nonsolid");
-            foreach (var part in copy.GetComponentsInChildren<Transform>(true)) part.gameObject.layer = layer;
+            foreach (var part in copy.GetComponentsInChildren<Transform>(true))
+            {
+                part.gameObject.layer = layer;
+                // Item prefabs carry the "spawned" tag, and the game counts tagged objects named "<prefab>(Clone)" as
+                // real ones: a hen stops laying once hens and eggs within 10 m reach 10 (Procreation, through
+                // SpawnSystem.GetNrOfInstances). The roost's shown eggs counted as eggs on the ground, so two hens stopped
+                // laying at 8 stored eggs (GitHub report, 2026-11-07). A shown copy is neither tagged nor named like one.
+                part.gameObject.tag = "Untagged";
+            }
+            if (copy.name.EndsWith("(Clone)")) copy.name = "Shown " + Utils.GetPrefabName(copy);
         }
     }
 }

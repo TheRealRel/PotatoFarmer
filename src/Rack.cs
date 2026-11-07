@@ -129,6 +129,11 @@ namespace PotatoFarmer
 
         // Raw meat prefab -> (jerky prefab, how many). The game's (and other mods') jerky recipes are read from the game:
         // 1 meat + 1 honey -> N jerky. Our own jerkies come after, for meats that have none.
+        private static readonly KeyValuePair<string, string>[] GamePairs =
+        {
+            new KeyValuePair<string, string>("RawMeat", "BoarJerky"), new KeyValuePair<string, string>("WolfMeat", "WolfJerky"),
+        };
+
         internal static Dictionary<string, KeyValuePair<string, int>> JerkyFor()
         {
             var db = ObjectDB.instance;
@@ -146,6 +151,12 @@ namespace PotatoFarmer
                 string raw = meat.m_resItem.gameObject.name;
                 if (!jerkyFor.ContainsKey(raw)) jerkyFor[raw] = new KeyValuePair<string, int>(recipe.m_item.gameObject.name, Math.Max(1, recipe.m_amount));
             }
+            // The game's own pair, when no recipe above gave it: a mod that changes or removes the cauldron's Boar or Wolf
+            // Jerky recipe (more meat or honey, another ingredient, switched off) left the rack refusing boar and wolf
+            // meat while our own jerkies worked (GitHub report, 2026-11-07). The rack keeps the game's 1 + 1 -> 2.
+            foreach (var pair in GamePairs)
+                if (!jerkyFor.ContainsKey(pair.Key) && db.GetItemPrefab(pair.Key) && db.GetItemPrefab(pair.Value))
+                    jerkyFor[pair.Key] = new KeyValuePair<string, int>(pair.Value, 2);
             foreach (var kind in Jerky.ByMeat.Values)
                 if (!jerkyFor.ContainsKey(kind.Meat) && db.GetItemPrefab(kind.Meat) && db.GetItemPrefab(kind.Prefab))
                     jerkyFor[kind.Meat] = new KeyValuePair<string, int>(kind.Prefab, 2);

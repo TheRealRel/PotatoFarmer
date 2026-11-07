@@ -1,6 +1,6 @@
 {
     "name": "PotatoFarmer",
-    "version_number": "1.4.0",
+    "version_number": "1.4.1",
     "website_url": "https://github.com/TheRealRel/PotatoFarmer",
     "description": "Farming and animal pieces for Valheim, each with its own model: a feeding trough, an egg-gathering roost, a mead cask, a salt lick, a hitching post and a jerky drying rack.",
     "dependencies": [
