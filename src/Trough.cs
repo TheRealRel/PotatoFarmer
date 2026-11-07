@@ -275,6 +275,7 @@ namespace PotatoFarmer
             for (; placed < picks.Count; placed++)
             {
                 var copy = Instantiate(picks[placed], foodModels.transform, false);
+                Looks.Restore(picks[placed], copy);
                 Strip(copy);
                 float along = picks.Count == 1 ? 0f : Mathf.Lerp(-0.55f * Size, 0.55f * Size, placed / (float)(picks.Count - 1));
                 Place(copy, along + (float)(random.NextDouble() - 0.5) * 0.12f, (float)random.NextDouble(), random);

@@ -594,6 +594,7 @@ namespace PotatoFarmer
             var source = item.transform.Find("attach") ?? item.transform.Find("model");
             if (!source) return null;
             var copy = Instantiate(source.gameObject, parent, false);
+            Looks.Restore(source.gameObject, copy);
             copy.name = prefab;
             Trough.Strip(copy);
             foreach (var renderer in copy.GetComponentsInChildren<Renderer>(true)) renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

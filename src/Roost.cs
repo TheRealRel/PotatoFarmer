@@ -363,6 +363,7 @@ namespace PotatoFarmer
                 var prefab = ObjectDB.instance.GetItemPrefab(name);
                 if (!prefab) continue;
                 var copy = Instantiate(prefab, eggModels.transform, false);
+                Looks.Restore(prefab, copy);
                 Trough.Strip(copy);
                 int cubby = i / (int)MaxShownPerCubby, slot = i % (int)MaxShownPerCubby;
                 // Lying on its side, a little turned, resting on the straw.
