@@ -55,12 +55,19 @@ namespace PotatoFarmer
         }
 
         // A bite in the bowl doesn't sparkle like a dropped item (the user, 1.4.1: "get rid of the sparkle in the
-        // trough while an item is waiting to be eaten"). The sparkle is the item's "fx_ItemSparkles" child, the same
-        // on the game's items and the big content mods'; nothing in the game switches it back on.
+        // trough while an item is waiting to be eaten"). Newer items (honey, weapons) carry the sparkle as an
+        // "fx_ItemSparkles" child; older ones, like the seeds, barley and dandelion a hen eats, as a particle system on
+        // the item itself (read from the game's prefabs; test e only switched the child off and the seeds still
+        // sparkled). Nothing in the game switches either back on.
         private static void Quiet(ItemDrop bite)
         {
             var sparkles = bite.transform.Find("fx_ItemSparkles");
             if (sparkles && sparkles.gameObject.activeSelf) sparkles.gameObject.SetActive(false);
+            if (bite.TryGetComponent<ParticleSystem>(out var own))
+            {
+                own.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                if (bite.TryGetComponent<ParticleSystemRenderer>(out var shown)) shown.enabled = false;
+            }
         }
 
         internal static bool IsBait(ItemDrop drop)
