@@ -3,6 +3,9 @@
 ## 1.4.1
 - Hens by Gullinkambi's Roost keep laying however many eggs it holds. The eggs shown in the roost were counted as eggs lying on the ground, so a few hens stopped laying until the roost was emptied.
 - Læraðr's Rack takes boar and wolf meat even when another mod changes or removes the game's Boar or Wolf Jerky recipe.
+- Finished jerky on Læraðr's Rack hangs on its hook instead of sticking to the hook's underside.
+- The honeycomb on the rack, the food in the trough and the roost's eggs show with Valheim Performance Optimizations 2.0.0 installed.
+- Food waiting in the trough for an animal no longer sparkles.
 
 ## 1.4.0
 - New: Læraðr's Rack, a jerky drying rack of Yggdrasil wood with nine hooks. Hang raw meat with honey on it, from E or a meat's hotbar key, and after 20 minutes (Rack drying time setting) each hook gives two jerky, like the game's cauldron recipe. The meat and honey hang on the hooks while they dry, then the jerky. Built at a forge from 10 Yggdrasil Wood, 4 Copper and 2 Iron.

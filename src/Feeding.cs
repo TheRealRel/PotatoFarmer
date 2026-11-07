@@ -49,8 +49,18 @@ namespace PotatoFarmer
         {
             if (!bite) return;
             bite.m_autoPickup = false;
+            Quiet(bite);
             var view = bite.GetComponent<ZNetView>();
             if (view && view.GetZDO() != null) view.GetZDO().Set(BaitKey, true);
+        }
+
+        // A bite in the bowl doesn't sparkle like a dropped item (the user, 1.4.1: "get rid of the sparkle in the
+        // trough while an item is waiting to be eaten"). The sparkle is the item's "fx_ItemSparkles" child, the same
+        // on the game's items and the big content mods'; nothing in the game switches it back on.
+        private static void Quiet(ItemDrop bite)
+        {
+            var sparkles = bite.transform.Find("fx_ItemSparkles");
+            if (sparkles && sparkles.gameObject.activeSelf) sparkles.gameObject.SetActive(false);
         }
 
         internal static bool IsBait(ItemDrop drop)
@@ -172,13 +182,16 @@ namespace PotatoFarmer
             }
         }
 
-        // A bite in the bowl is for the animals: nobody's auto-pickup grabs it while walking past.
+        // A bite in the bowl is for the animals: nobody's auto-pickup grabs it while walking past, and it doesn't sparkle
+        // (on every player's screen: the others see it through this, made from the bite's saved mark).
         [HarmonyPatch(typeof(ItemDrop), "Awake")]
         private static class BaitStaysPut
         {
             private static void Postfix(ItemDrop __instance)
             {
-                if (IsBait(__instance)) __instance.m_autoPickup = false;
+                if (!IsBait(__instance)) return;
+                __instance.m_autoPickup = false;
+                Quiet(__instance);
             }
         }
     }
