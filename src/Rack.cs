@@ -31,6 +31,25 @@ namespace PotatoFarmer
             new Vector3(-0.300f, 0.836f, 0.027f), new Vector3(0.101f, 0.827f, -0.031f), new Vector3(0.459f, 0.838f, -0.041f),
             new Vector3(-0.317f, 0.837f, 0.426f), new Vector3(0.098f, 0.831f, 0.440f), new Vector3(0.438f, 0.835f, 0.434f),
         };
+        // Where the jerkies go through each hook (test c of 1.4.1, the user: "Some may barely be touching the hook").
+        // The curl points above are the underside of the hook's solid foot, about 4 cm (model) below the floor of
+        // the U between the stem and each horn, so a jerky's top 3.5 cm above them stayed inside the metal and the
+        // jerky looked stuck to the hook's underside. These are the U floors, measured in slices through each curl
+        // (tools/hang/valley2.py): the middle of the floor's lowest stretch, at the curl's x. A jerky's top goes
+        // JerkyLift above its floor, so the hook visibly goes through it and the top shows inside the U.
+        private static readonly Vector3[] BigFloor =
+        {
+            new Vector3(-0.3038f, 0.8704f, -0.4888f), new Vector3(0.1103f, 0.8708f, -0.4929f), new Vector3(0.4407f, 0.8706f, -0.4950f),
+            new Vector3(-0.3068f, 0.8689f, -0.0437f), new Vector3(0.0851f, 0.8651f, 0.0427f), new Vector3(0.4580f, 0.8745f, 0.0459f),
+            new Vector3(-0.2965f, 0.8664f, 0.4906f), new Vector3(0.0955f, 0.8698f, 0.4978f), new Vector3(0.4396f, 0.8704f, 0.4954f),
+        };
+        private static readonly Vector3[] SmallFloor =
+        {
+            new Vector3(-0.3147f, 0.8813f, -0.4148f), new Vector3(0.0975f, 0.8812f, -0.4209f), new Vector3(0.4429f, 0.8810f, -0.4150f),
+            new Vector3(-0.3004f, 0.8789f, 0.0313f), new Vector3(0.1013f, 0.8670f, -0.0383f), new Vector3(0.4585f, 0.8741f, -0.0471f),
+            new Vector3(-0.3166f, 0.8812f, 0.4146f), new Vector3(0.0983f, 0.8828f, 0.4218f), new Vector3(0.4379f, 0.8751f, 0.4174f),
+        };
+        private const float JerkyLift = 0.03f;
         // Pierce: an item's top sits this far above its curl's lowest point (model units), so the curl goes into it
         // rather than the item touching it at one point. Along the bar a hanging item may overlap its neighbours a
         // little (5 %); across it stays in its row. The honeycomb hangs 30 cm. Jerkies are drawn 12 % bigger.
@@ -397,6 +416,8 @@ namespace PotatoFarmer
 
         private static Vector3 Curl(Vector3[] curls, int hook) => (curls[hook] + new Vector3(0f, Pierce, 0f)) * Size;
 
+        private static Vector3 Floor(Vector3[] floors, int hook) => (floors[hook] + new Vector3(0f, JerkyLift, 0f)) * Size;
+
         private Vector3 HookLocal(int hook) => Curl(BigCurl, hook);
 
         private Vector3 HookPoint(int hook) => transform.TransformPoint(HookLocal(hook));
@@ -465,7 +486,7 @@ namespace PotatoFarmer
                 bool turned = Jerky.Kinds.Any(k => k.Prefab == jerky.Key && k.Shape == "deer");
                 for (int k = 0; k < 2; k++)
                 {
-                    var at = k == 0 ? big : small;
+                    var at = Floor(k == 0 ? BigFloor : SmallFloor, index);
                     var copy = Copy(jerky.Key, holder.transform, out var bounds);
                     if (!copy) break;
                     var fit = Anchor(jerky.Key, copy, Hanging.Place(bounds, at, along / 2f, across, down, false, Hanging.SignFor(jerky.Key)), at);

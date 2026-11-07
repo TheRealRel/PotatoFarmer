@@ -18,6 +18,7 @@ TOP_BAND = 0.015   # model units (3 cm at 2x)
 ANCHOR = True
 HONEY_SIZE, HONEY_TUCK = 0.30, 0.5   # metres the comb hangs down; how much of it the meat's top tucks behind
 JERKY_MODE = {}
+JERKY_AT = None   # fn(hook, S) -> (big, small) points where a jerky's top goes (test c of 1.4.1: the hook's valley + lift)
 
 def pts_item(name): return verts(name) - np.array(ATT.get(name, [0, 0, 0]))
 def pts_ptm(path):
@@ -94,7 +95,8 @@ def build(S, items, state, honey_scale=0.55):
             M, s, turn, lo, hi = place(p, hook, S, ra / 2, rc, rd, game_ok=False)
             wdt = hi[0] - lo[0]
             mode = JERKY_MODE.get(src, 'bundle')
-            for k, at in enumerate((big, small)):
+            pair = JERKY_AT(i, S, src) if JERKY_AT else (big, small)
+            for k, at in enumerate(pair):
                 Mj, s, turn, lo, hi = place(p, at, S, ra / 2, rc, rd, game_ok=False, anchor=ANCHOR)
                 wdt = hi[0] - lo[0]
                 if mode == 'diag':
